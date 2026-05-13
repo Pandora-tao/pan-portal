@@ -1,0 +1,35 @@
+{
+  "name": "dragon-boat-festival-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@10.33.4",
+  "scripts": {
+    "dev": "pnpm --filter @dragon-boat/portal dev",
+    "dev:portal": "pnpm --filter @dragon-boat/portal dev",
+    "dev:lucky-draw": "pnpm --filter @dragon-boat/lucky-draw dev",
+    "dev:all": "pnpm -r --parallel dev",
+    "type-check": "pnpm -r type-check",
+    "build": "pnpm -r build",
+    "preview:portal": "pnpm --filter @dragon-boat/portal preview",
+    "preview:lucky-draw": "pnpm --filter @dragon-boat/lucky-draw preview"
+  },
+  "dependencies": {
+    "@fontsource/ma-shan-zheng": "^5.2.9",
+    "@vueuse/core": "^14.3.0",
+    "canvas-confetti": "^1.9.4",
+    "gsap": "^3.15.0",
+    "lucide-vue-next": "^1.0.0",
+    "vue": "^3.5.25"
+  },
+  "devDependencies": {
+    "@types/canvas-confetti": "^1.9.0",
+    "@types/node": "^25.7.0",
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/tsconfig": "^0.9.1",
+    "pngjs": "^7.0.0",
+    "typescript": "^6.0.3",
+    "vite": "^7.2.7",
+    "vue-tsc": "^3.2.8"
+  }
+}

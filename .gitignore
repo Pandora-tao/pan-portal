@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-ssr
+*.local
+*.log
+.codex-logs
+.codex-screenshots
+
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store

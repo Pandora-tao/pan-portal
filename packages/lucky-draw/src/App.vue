@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { Home } from 'lucide-vue-next'
 import AdvancedChallengeModal, { type AdvancedAnswerResult } from './components/AdvancedChallengeModal.vue'
 import CorrectAnswerAnimation from './components/CorrectAnswerAnimation.vue'
 import DrawStage from './components/DrawStage.vue'
@@ -40,6 +41,7 @@ const showCorrectAnswer = ref(false)
 const showWrongAnswer = ref(false)
 const shouldAskNextBasicAfterPenalty = ref(false)
 const showFriendshipMessage = ref(false)
+const portalHref = import.meta.env.VITE_PORTAL_ROUTE ?? '/'
 
 const availableBasicQuizzes = computed(() =>
   basicQuizzes.filter((quiz) => !drawState.value.basicFailedQuestionIds.includes(quiz.id)),
@@ -205,6 +207,11 @@ const returnHomeAfterWrongAnswer = () => {
   <main class="festival-page" :class="{ 'is-drawing': isDrawing }">
     <FestivalBackground />
 
+    <a class="portal-link" :href="portalHref" aria-label="返回门户">
+      <Home :size="17" />
+      <span>返回门户</span>
+    </a>
+
     <HeroSection
       v-if="!isDrawing"
       :title="title"
@@ -274,6 +281,38 @@ const returnHomeAfterWrongAnswer = () => {
     linear-gradient(145deg, #f8f4e7 0%, #eff7ed 44%, #dfeee6 100%);
 }
 
+.portal-link {
+  position: fixed;
+  z-index: 12;
+  top: calc(18px + env(safe-area-inset-top));
+  left: calc(18px + env(safe-area-inset-left));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  padding: 0 13px;
+  border: 1px solid rgb(46 124 85 / 24%);
+  border-radius: 999px;
+  color: #164f38;
+  background: rgb(255 253 247 / 84%);
+  box-shadow: 0 14px 34px rgb(35 84 50 / 14%);
+  font-size: 14px;
+  font-weight: 900;
+  text-decoration: none;
+  backdrop-filter: blur(12px);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease,
+    background 0.2s ease;
+}
+
+.portal-link:hover {
+  background: rgb(255 253 247 / 94%);
+  box-shadow: 0 18px 40px rgb(35 84 50 / 18%);
+  transform: translateY(-2px);
+}
+
 .friendship-backdrop {
   z-index: 22;
 }
@@ -316,6 +355,14 @@ const returnHomeAfterWrongAnswer = () => {
 
   .festival-page.is-drawing {
     padding: 74px 16px 16px;
+  }
+
+  .portal-link {
+    top: calc(12px + env(safe-area-inset-top));
+    left: calc(12px + env(safe-area-inset-left));
+    min-height: 34px;
+    padding-inline: 11px;
+    font-size: 12px;
   }
 }
 </style>

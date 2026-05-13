@@ -8,9 +8,15 @@ importers:
 
   .:
     dependencies:
+      '@fontsource/liu-jian-mao-cao':
+        specifier: ^5.2.8
+        version: 5.2.8
       '@fontsource/ma-shan-zheng':
         specifier: ^5.2.9
         version: 5.2.9
+      '@fontsource/pacifico':
+        specifier: ^5.2.7
+        version: 5.2.7
       '@vueuse/core':
         specifier: ^14.3.0
         version: 14.3.0(vue@3.5.34(typescript@6.0.3))
@@ -23,6 +29,9 @@ importers:
       lucide-vue-next:
         specifier: ^1.0.0
         version: 1.0.0(vue@3.5.34(typescript@6.0.3))
+      matter-js:
+        specifier: ^0.20.0
+        version: 0.20.0
       vue:
         specifier: ^3.5.25
         version: 3.5.34(typescript@6.0.3)
@@ -30,6 +39,9 @@ importers:
       '@types/canvas-confetti':
         specifier: ^1.9.0
         version: 1.9.0
+      '@types/matter-js':
+        specifier: ^0.20.2
+        version: 0.20.2
       '@types/node':
         specifier: ^25.7.0
         version: 25.7.0
@@ -53,6 +65,8 @@ importers:
         version: 3.2.8(typescript@6.0.3)
 
   packages/lucky-draw: {}
+
+  packages/pan-chat: {}
 
   packages/portal: {}
 
@@ -231,8 +245,14 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  '@fontsource/liu-jian-mao-cao@5.2.8':
+    resolution: {integrity: sha512-5K7Lx+g0JVrr0I8aHB2BBh2fD9m2BXwIQJLzZX+SnLrFSZV1tKT2rCRf0OEuTJDRuUEJa3UiFb58GoM4PvUUUg==}
+
   '@fontsource/ma-shan-zheng@5.2.9':
     resolution: {integrity: sha512-5Pvpb5q6sq00/g+yLLE8iYWcsAqnoIqCloBsjN0bphkGWU3Wp3EfT0CgTsKOiLsPM8GN3AUP0ZaFM2/JR33C/g==}
+
+  '@fontsource/pacifico@5.2.7':
+    resolution: {integrity: sha512-L+YiZn3Lb8rVN15zcLlti62doVxQeFpS+dJmulKkFrUo3dZIAxZLHwXoKaaHm+VVcOTrT/mmKCZqGOIWVmFV2w==}
 
   '@jridgewell/sourcemap-codec@1.5.5':
     resolution: {integrity: sha512-cYQ9310grqxueWbl+WuIUIaiUaDcj7WOq5fVhEljNVgRfOUhY9fy2zTvfoqWsnebh8Sl70VScFbICvJnLKB0Og==}
@@ -384,6 +404,9 @@ packages:
   '@types/estree@1.0.8':
     resolution: {integrity: sha512-dWHzHa2WqEXI/O1E9OjrocMTKJl2mSrEolh1Iomrv6U+JuNwaHXsXx9bLu5gG7BUWFIN0skIQJQ/L1rIex4X6w==}
 
+  '@types/matter-js@0.20.2':
+    resolution: {integrity: sha512-3PPKy3QxvZ89h9+wdBV2488I1JLVs7DEpIkPvgO8JC1mUdiVSO37ZIvVctOTD7hIq8OAL2gJ3ugGSuUip6DhCw==}
+
   '@types/node@25.7.0':
     resolution: {integrity: sha512-z+pdZyxE+RTQE9AcboAZCb4otwcrvgHD+GlBpPgn0emDVt0ohrTMhAwlr2Wd9nZ+nihhYFxO2pThz3C5qSu2Eg==}
 
@@ -507,6 +530,9 @@ packages:
 
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
+
+  matter-js@0.20.0:
+    resolution: {integrity: sha512-iC9fYR7zVT3HppNnsFsp9XOoQdQN2tUyfaKg4CHLH8bN+j6GT4Gw7IH2rP0tflAebrHFw730RR3DkVSZRX8hwA==}
 
   muggle-string@0.4.1:
     resolution: {integrity: sha512-VNTrAak/KhO2i8dqqnqnAHOa3cYBwXEZe9h+D5h/1ZqFSTEFHdM65lR7RoIqq3tBBYavsOXV84NoHXZ0AkPyqQ==}
@@ -705,7 +731,11 @@ snapshots:
   '@esbuild/win32-x64@0.27.7':
     optional: true
 
+  '@fontsource/liu-jian-mao-cao@5.2.8': {}
+
   '@fontsource/ma-shan-zheng@5.2.9': {}
+
+  '@fontsource/pacifico@5.2.7': {}
 
   '@jridgewell/sourcemap-codec@1.5.5': {}
 
@@ -789,6 +819,8 @@ snapshots:
   '@types/canvas-confetti@1.9.0': {}
 
   '@types/estree@1.0.8': {}
+
+  '@types/matter-js@0.20.2': {}
 
   '@types/node@25.7.0':
     dependencies:
@@ -951,6 +983,8 @@ snapshots:
   magic-string@0.30.21:
     dependencies:
       '@jridgewell/sourcemap-codec': 1.5.5
+
+  matter-js@0.20.0: {}
 
   muggle-string@0.4.1: {}
 

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="cartoon watermelon slice no face" fill="none">
+
+<defs>
+  <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="10" stdDeviation="12" flood-opacity="0.18"/>
+  </filter>
+</defs>
+
+<defs><linearGradient id="flesh" x1="260" y1="120" x2="760" y2="820" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4A4A"/><stop offset="1" stop-color="#E80E21"/></linearGradient><linearGradient id="rind" x1="150" y1="730" x2="880" y2="860" gradientUnits="userSpaceOnUse"><stop stop-color="#69D144"/><stop offset="1" stop-color="#116B1C"/></linearGradient></defs>
+<g filter="url(#softShadow)" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M512 129L124 787C367 916 657 916 900 787L512 129Z" fill="url(#flesh)" stroke="#6B140E" stroke-width="16"/>
+  <path d="M124 787C367 916 657 916 900 787L856 862C637 958 387 958 168 862L124 787Z" fill="url(#rind)" stroke="#0F4E16" stroke-width="16"/>
+  <path d="M173 793C385 889 638 889 851 793" stroke="#E4FFD4" stroke-width="28" opacity=".8"/>
+  <g fill="#171717" stroke="#4A0F0F" stroke-width="6">
+    <ellipse cx="395" cy="425" rx="18" ry="34" transform="rotate(12 395 425)"/>
+    <ellipse cx="514" cy="354" rx="18" ry="34"/>
+    <ellipse cx="631" cy="424" rx="18" ry="34" transform="rotate(-12 631 424)"/>
+    <ellipse cx="317" cy="564" rx="18" ry="34" transform="rotate(21 317 564)"/>
+    <ellipse cx="707" cy="562" rx="18" ry="34" transform="rotate(-21 707 562)"/>
+  </g>
+  <path d="M377 242L276 416" stroke="#FF9C9C" stroke-width="30" opacity=".65"/>
+</g>
+</svg>

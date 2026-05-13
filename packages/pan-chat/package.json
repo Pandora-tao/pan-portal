@@ -1,0 +1,12 @@
+{
+  "name": "@dragon-boat/pan-chat",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node server/index.mjs",
+    "type-check": "vue-tsc --noEmit",
+    "build": "vue-tsc --noEmit && vite build",
+    "preview": "node server/index.mjs"
+  }
+}

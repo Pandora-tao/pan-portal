@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" role="img" aria-label="cartoon strawberry no face" fill="none">
+
+<defs>
+  <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%">
+    <feDropShadow dx="0" dy="10" stdDeviation="12" flood-opacity="0.18"/>
+  </filter>
+</defs>
+
+<defs><linearGradient id="berry" x1="230" y1="190" x2="760" y2="880" gradientUnits="userSpaceOnUse"><stop stop-color="#FF4040"/><stop offset="1" stop-color="#D70618"/></linearGradient><linearGradient id="leaf" x1="310" y1="90" x2="710" y2="270" gradientUnits="userSpaceOnUse"><stop stop-color="#8CE33E"/><stop offset="1" stop-color="#219A22"/></linearGradient></defs>
+<g filter="url(#softShadow)" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M512 230C376 146 200 239 172 401C143 570 278 808 512 916C746 808 881 570 852 401C824 239 648 146 512 230Z" fill="url(#berry)" stroke="#6B140E" stroke-width="16"/>
+  <path d="M504 238C435 211 375 183 312 126C304 205 360 264 440 288" fill="url(#leaf)" stroke="#1C7118" stroke-width="12"/>
+  <path d="M515 235C512 161 545 94 610 64C635 141 608 213 536 276" fill="url(#leaf)" stroke="#1C7118" stroke-width="12"/>
+  <path d="M531 239C603 210 661 179 714 120C727 200 669 267 589 290" fill="url(#leaf)" stroke="#1C7118" stroke-width="12"/>
+  <g fill="#FFD34D" stroke="#9C4B00" stroke-width="7">
+    <ellipse cx="335" cy="405" rx="13" ry="25"/><ellipse cx="457" cy="365" rx="13" ry="25"/><ellipse cx="583" cy="385" rx="13" ry="25"/><ellipse cx="698" cy="430" rx="13" ry="25"/>
+    <ellipse cx="278" cy="535" rx="13" ry="25"/><ellipse cx="420" cy="515" rx="13" ry="25"/><ellipse cx="558" cy="548" rx="13" ry="25"/><ellipse cx="725" cy="580" rx="13" ry="25"/>
+    <ellipse cx="374" cy="674" rx="13" ry="25"/><ellipse cx="512" cy="704" rx="13" ry="25"/><ellipse cx="638" cy="690" rx="13" ry="25"/>
+    <ellipse cx="457" cy="812" rx="13" ry="25"/><ellipse cx="578" cy="807" rx="13" ry="25"/>
+  </g>
+  <path d="M246 380C268 320 315 281 381 265" stroke="#FF9E9E" stroke-width="32" opacity=".65"/>
+</g>
+</svg>

@@ -4,7 +4,7 @@ import * as Matter from 'matter-js'
 import { Sparkles } from 'lucide-vue-next'
 import avatarUrl from './assets/pan-avatar.png'
 import luluUrl from './assets/lulu-cutout.png'
-import puddingUrl from './assets/pudding-dog.svg'
+import puddingUrl from './assets/pudding-dog.png'
 import appleUrl from './assets/apple-smile.svg'
 import bananaUrl from './assets/banana-smile.svg'
 import watermelonUrl from './assets/watermelon-smile.svg'
@@ -41,6 +41,7 @@ const puddingDecor = ref<HTMLElement | null>(null)
 const watermelonDecor = ref<HTMLElement | null>(null)
 const bananaDecor = ref<HTMLElement | null>(null)
 const appleDecor = ref<HTMLElement | null>(null)
+const strawberryDecor = ref<HTMLElement | null>(null)
 
 const decorStyles = reactive<Record<DecorKey, Record<string, string>>>({
   lulu: {},
@@ -183,6 +184,7 @@ async function setupPhysics() {
     ['watermelon', watermelonDecor.value],
     ['banana', bananaDecor.value],
     ['apple', appleDecor.value],
+    ['strawberry', strawberryDecor.value],
   ]
 
   if (!shell || !physicsLayer || decorElements.some(([, element]) => !element)) {

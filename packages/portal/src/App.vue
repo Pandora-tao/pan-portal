@@ -406,12 +406,12 @@ onBeforeUnmount(() => {
           @touchend.stop
         >
           <span class="app-visual" :class="`app-visual-${app.icon}`" aria-hidden="true">
-            <span class="leaf leaf-left"></span>
-            <span class="leaf leaf-right"></span>
-            <span class="zongzi">
-              <span class="wrap-line line-a"></span>
-              <span class="wrap-line line-b"></span>
-              <span class="knot"></span>
+            <span class="gift-box">
+              <span class="box-body"></span>
+              <span class="box-lid"></span>
+              <span class="ribbon ribbon-v"></span>
+              <span class="ribbon ribbon-h"></span>
+              <span class="bow"></span>
             </span>
             <span class="spark spark-one"></span>
             <span class="spark spark-two"></span>

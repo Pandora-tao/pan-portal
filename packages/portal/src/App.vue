@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ExternalLink, Gift, Home, Layers, PlayCircle } from 'lucide-vue-next'
+import { Gift, Home, Layers, PlayCircle, Route } from 'lucide-vue-next'
 
 interface PortalApp {
   id: string
@@ -10,16 +10,16 @@ interface PortalApp {
   status: string
 }
 
-const luckyDrawUrl = import.meta.env.VITE_LUCKY_DRAW_URL ?? 'http://localhost:5173'
+const luckyDrawRoute = import.meta.env.VITE_LUCKY_DRAW_ROUTE ?? '/lucky-draw/'
 
 const apps: PortalApp[] = [
   {
     id: 'lucky-draw',
     name: '陶攀的端午节赠礼',
     description: '端午节答题、抽粽子与奖品领取活动。',
-    href: luckyDrawUrl,
+    href: luckyDrawRoute,
     devPort: 5173,
-    status: '可访问',
+    status: '路由接入',
   },
 ]
 </script>
@@ -46,7 +46,7 @@ const apps: PortalApp[] = [
 
       <div class="summary-strip" aria-label="应用概览">
         <span><Layers :size="16" />{{ apps.length }} 个子应用</span>
-        <span><PlayCircle :size="16" />Portal 端口 80</span>
+        <span><PlayCircle :size="16" />Portal 路由导航</span>
       </div>
     </section>
 
@@ -63,6 +63,10 @@ const apps: PortalApp[] = [
           <p>{{ app.description }}</p>
           <dl>
             <div>
+              <dt>访问路由</dt>
+              <dd>{{ app.href }}</dd>
+            </div>
+            <div>
               <dt>开发端口</dt>
               <dd>{{ app.devPort }}</dd>
             </div>
@@ -74,7 +78,7 @@ const apps: PortalApp[] = [
         </div>
         <a class="primary-action app-link" :href="app.href">
           <span>进入应用</span>
-          <ExternalLink :size="17" />
+          <Route :size="17" />
         </a>
       </article>
     </section>

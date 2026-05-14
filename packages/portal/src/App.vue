@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import * as Matter from 'matter-js'
 import { Sparkles } from 'lucide-vue-next'
 import avatarUrl from './assets/pan-avatar.png'
@@ -36,7 +36,6 @@ const apps: PortalApp[] = [
 ]
 
 const activeDecoration = ref('')
-const isCelebrating = ref(false)
 const isGiftIntroOpen = ref(true)
 const portalShell = ref<HTMLElement | null>(null)
 const decorLayer = ref<HTMLElement | null>(null)
@@ -58,44 +57,13 @@ const decorStyles = reactive<Record<DecorKey, Record<string, string>>>({
   strawberry: {},
 })
 
-const collectedDecor = reactive<Record<DecorKey, boolean>>({
-  lulu: false,
-  grape: false,
-  pudding: false,
-  watermelon: false,
-  banana: false,
-  apple: false,
-  strawberry: false,
-})
-
-const totalDecorations = decorKeys.length
-const collectedCount = computed(() => decorKeys.filter((key) => collectedDecor[key]).length)
-const allCollected = computed(() => collectedCount.value === totalDecorations)
-
 const decorBodies = new Map<DecorKey, Matter.Body>()
 let decorationTimer: number | undefined
-let celebrationTimer: number | undefined
 let giftIntroTimer: number | undefined
 let engine: Matter.Engine | undefined
 let runner: Matter.Runner | undefined
 let resizeObserver: ResizeObserver | undefined
 let rebuildTimer: number | undefined
-
-function collectDecoration(id: DecorKey) {
-  if (collectedDecor[id]) {
-    return
-  }
-
-  collectedDecor[id] = true
-
-  if (collectedCount.value === totalDecorations) {
-    isCelebrating.value = true
-    window.clearTimeout(celebrationTimer)
-    celebrationTimer = window.setTimeout(() => {
-      isCelebrating.value = false
-    }, 1300)
-  }
-}
 
 function popDecoration(id: DecorKey) {
   activeDecoration.value = id
@@ -103,8 +71,6 @@ function popDecoration(id: DecorKey) {
   decorationTimer = window.setTimeout(() => {
     activeDecoration.value = ''
   }, 620)
-
-  collectDecoration(id)
 
   const body = decorBodies.get(id)
   if (body) {
@@ -287,7 +253,7 @@ onMounted(() => {
   setupPhysics()
   giftIntroTimer = window.setTimeout(() => {
     isGiftIntroOpen.value = false
-  }, 1650)
+  }, 2400)
 
   if (portalShell.value) {
     resizeObserver = new ResizeObserver(() => {
@@ -300,7 +266,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.clearTimeout(decorationTimer)
-  window.clearTimeout(celebrationTimer)
   window.clearTimeout(giftIntroTimer)
   window.clearTimeout(rebuildTimer)
   resizeObserver?.disconnect()
@@ -314,8 +279,6 @@ onBeforeUnmount(() => {
       ref="portalShell"
       class="portal-shell"
       :class="{
-        'is-complete': allCollected,
-        'is-celebrating': isCelebrating,
         'is-gift-intro-open': isGiftIntroOpen,
       }"
       aria-label="个人门户"
@@ -331,123 +294,102 @@ onBeforeUnmount(() => {
       </div>
 
       <div ref="decorLayer" class="decor-layer">
-      <button
-        ref="luluDecor"
-        type="button"
-        class="decor decor-lulu"
-        :class="{ 'is-active': activeDecoration === 'lulu', 'is-collected': collectedDecor.lulu }"
-        :style="decorStyles.lulu"
-        :aria-label="collectedDecor.lulu ? '噜噜，已收集' : '噜噜'"
-        @pointerdown="collectDecoration('lulu')"
-        @mousedown="collectDecoration('lulu')"
-        @touchstart.passive="collectDecoration('lulu')"
-        @click="popDecoration('lulu')"
-      >
-        <img :src="luluUrl" alt="" />
-        <span class="decor-pop"></span>
-      </button>
+        <button
+          ref="luluDecor"
+          type="button"
+          class="decor decor-lulu"
+          :class="{ 'is-active': activeDecoration === 'lulu' }"
+          :style="decorStyles.lulu"
+          aria-label="噜噜"
+          @click="popDecoration('lulu')"
+        >
+          <img :src="luluUrl" alt="" />
+          <span class="decor-pop"></span>
+        </button>
 
-      <button
-        ref="grapeDecor"
-        type="button"
-        class="decor decor-grape"
-        :class="{ 'is-active': activeDecoration === 'grape', 'is-collected': collectedDecor.grape }"
-        :style="decorStyles.grape"
-        :aria-label="collectedDecor.grape ? '葡萄，已收集' : '葡萄'"
-        @pointerdown="collectDecoration('grape')"
-        @mousedown="collectDecoration('grape')"
-        @touchstart.passive="collectDecoration('grape')"
-        @click="popDecoration('grape')"
-      >
-        <span class="grape-leaf"></span>
-        <span class="grape-dot dot-one"></span>
-        <span class="grape-dot dot-two"></span>
-        <span class="grape-dot dot-three"></span>
-        <span class="grape-dot dot-four"></span>
-        <span class="grape-dot dot-five"></span>
-        <span class="grape-dot dot-six"></span>
-        <span class="decor-pop"></span>
-      </button>
+        <button
+          ref="grapeDecor"
+          type="button"
+          class="decor decor-grape"
+          :class="{ 'is-active': activeDecoration === 'grape' }"
+          :style="decorStyles.grape"
+          aria-label="葡萄"
+          @click="popDecoration('grape')"
+        >
+          <span class="grape-leaf"></span>
+          <span class="grape-dot dot-one"></span>
+          <span class="grape-dot dot-two"></span>
+          <span class="grape-dot dot-three"></span>
+          <span class="grape-dot dot-four"></span>
+          <span class="grape-dot dot-five"></span>
+          <span class="grape-dot dot-six"></span>
+          <span class="decor-pop"></span>
+        </button>
 
-      <button
-        ref="puddingDecor"
-        type="button"
-        class="decor decor-pudding"
-        :class="{ 'is-active': activeDecoration === 'pudding', 'is-collected': collectedDecor.pudding }"
-        :style="decorStyles.pudding"
-        :aria-label="collectedDecor.pudding ? '布丁小狗，已收集' : '布丁小狗'"
-        @pointerdown="collectDecoration('pudding')"
-        @mousedown="collectDecoration('pudding')"
-        @touchstart.passive="collectDecoration('pudding')"
-        @click="popDecoration('pudding')"
-      >
-        <img :src="puddingUrl" alt="" />
-        <span class="decor-pop"></span>
-      </button>
+        <button
+          ref="puddingDecor"
+          type="button"
+          class="decor decor-pudding"
+          :class="{ 'is-active': activeDecoration === 'pudding' }"
+          :style="decorStyles.pudding"
+          aria-label="布丁小狗"
+          @click="popDecoration('pudding')"
+        >
+          <img :src="puddingUrl" alt="" />
+          <span class="decor-pop"></span>
+        </button>
 
-      <button
-        ref="watermelonDecor"
-        type="button"
-        class="decor decor-watermelon"
-        :class="{ 'is-active': activeDecoration === 'watermelon', 'is-collected': collectedDecor.watermelon }"
-        :style="decorStyles.watermelon"
-        :aria-label="collectedDecor.watermelon ? '西瓜，已收集' : '西瓜'"
-        @pointerdown="collectDecoration('watermelon')"
-        @mousedown="collectDecoration('watermelon')"
-        @touchstart.passive="collectDecoration('watermelon')"
-        @click="popDecoration('watermelon')"
-      >
-        <img :src="watermelonUrl" alt="" />
-        <span class="decor-pop"></span>
-      </button>
+        <button
+          ref="watermelonDecor"
+          type="button"
+          class="decor decor-watermelon"
+          :class="{ 'is-active': activeDecoration === 'watermelon' }"
+          :style="decorStyles.watermelon"
+          aria-label="西瓜"
+          @click="popDecoration('watermelon')"
+        >
+          <img :src="watermelonUrl" alt="" />
+          <span class="decor-pop"></span>
+        </button>
 
-      <button
-        ref="strawberryDecor"
-        type="button"
-        class="decor decor-strawberry"
-        :class="{ 'is-active': activeDecoration === 'strawberry', 'is-collected': collectedDecor.strawberry }"
-        :style="decorStyles.strawberry"
-        :aria-label="collectedDecor.strawberry ? '草莓，已收集' : '草莓'"
-        @pointerdown="collectDecoration('strawberry')"
-        @mousedown="collectDecoration('strawberry')"
-        @touchstart.passive="collectDecoration('strawberry')"
-        @click="popDecoration('strawberry')"
-      >
-        <img :src="strawberryUrl" alt="" />
-        <span class="decor-pop"></span>
-      </button>
+        <button
+          ref="strawberryDecor"
+          type="button"
+          class="decor decor-strawberry"
+          :class="{ 'is-active': activeDecoration === 'strawberry' }"
+          :style="decorStyles.strawberry"
+          aria-label="草莓"
+          @click="popDecoration('strawberry')"
+        >
+          <img :src="strawberryUrl" alt="" />
+          <span class="decor-pop"></span>
+        </button>
 
-      <button
-        ref="bananaDecor"
-        type="button"
-        class="decor decor-banana"
-        :class="{ 'is-active': activeDecoration === 'banana', 'is-collected': collectedDecor.banana }"
-        :style="decorStyles.banana"
-        :aria-label="collectedDecor.banana ? '香蕉，已收集' : '香蕉'"
-        @pointerdown="collectDecoration('banana')"
-        @mousedown="collectDecoration('banana')"
-        @touchstart.passive="collectDecoration('banana')"
-        @click="popDecoration('banana')"
-      >
-        <img :src="bananaUrl" alt="" />
-        <span class="decor-pop"></span>
-      </button>
+        <button
+          ref="bananaDecor"
+          type="button"
+          class="decor decor-banana"
+          :class="{ 'is-active': activeDecoration === 'banana' }"
+          :style="decorStyles.banana"
+          aria-label="香蕉"
+          @click="popDecoration('banana')"
+        >
+          <img :src="bananaUrl" alt="" />
+          <span class="decor-pop"></span>
+        </button>
 
-      <button
-        ref="appleDecor"
-        type="button"
-        class="decor decor-apple"
-        :class="{ 'is-active': activeDecoration === 'apple', 'is-collected': collectedDecor.apple }"
-        :style="decorStyles.apple"
-        :aria-label="collectedDecor.apple ? '苹果，已收集' : '苹果'"
-        @pointerdown="collectDecoration('apple')"
-        @mousedown="collectDecoration('apple')"
-        @touchstart.passive="collectDecoration('apple')"
-        @click="popDecoration('apple')"
-      >
-        <img :src="appleUrl" alt="" />
-        <span class="decor-pop"></span>
-      </button>
+        <button
+          ref="appleDecor"
+          type="button"
+          class="decor decor-apple"
+          :class="{ 'is-active': activeDecoration === 'apple' }"
+          :style="decorStyles.apple"
+          aria-label="苹果"
+          @click="popDecoration('apple')"
+        >
+          <img :src="appleUrl" alt="" />
+          <span class="decor-pop"></span>
+        </button>
       </div>
 
       <header class="portal-header">
@@ -464,9 +406,6 @@ onBeforeUnmount(() => {
           <img :src="avatarUrl" alt="" />
         </a>
         <p><Sparkles :size="15" />Pan's space</p>
-        <div class="collection-status" :class="{ 'is-complete': allCollected }" aria-live="polite">
-          收集 {{ collectedCount }}/{{ totalDecorations }}
-        </div>
       </header>
 
       <section class="app-grid" aria-label="子应用列表">
@@ -486,7 +425,7 @@ onBeforeUnmount(() => {
             <img class="app-icon-image" :src="app.image" alt="" decoding="async" loading="lazy" />
           </span>
           <span class="app-name">{{ app.name }}</span>
-          <span class="app-state">{{ allCollected ? '已集齐' : '进入' }}</span>
+          <span class="app-state">进入</span>
         </a>
       </section>
     </section>

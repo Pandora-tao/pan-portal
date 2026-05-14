@@ -163,10 +163,6 @@ a {
   transform: rotate(5deg);
 }
 
-.portal-shell.is-celebrating .app-entry {
-  animation: entry-celebrate 0.72s steps(2) 2;
-}
-
 .portal-header {
   position: relative;
   z-index: 5;
@@ -246,30 +242,6 @@ a {
   filter:
     drop-shadow(2px 0 0 var(--sweet-pink))
     drop-shadow(-2px 0 0 var(--sweet-cyan));
-}
-
-.collection-status {
-  display: inline-grid;
-  place-items: center;
-  min-width: 92px;
-  min-height: 34px;
-  padding: 5px 12px;
-  border: 1px solid var(--ink);
-  color: var(--ink);
-  background: #f3dfcd;
-  box-shadow: 3px 3px 0 rgb(58 42 40 / 76%);
-  font-family: Courier, "Courier New", monospace;
-  font-size: 0.9rem;
-  font-weight: 700;
-  line-height: 1;
-  transform: rotate(-2deg);
-}
-
-.collection-status.is-complete {
-  background: var(--sweet-yellow);
-  box-shadow:
-    3px 3px 0 rgb(58 42 40 / 76%),
-    -2px 2px 0 var(--sweet-pink);
 }
 
 .simple-patterns {
@@ -383,105 +355,56 @@ a {
   position: absolute;
   right: 30px;
   bottom: 28px;
-  width: 138px;
-  min-height: 132px;
+  width: 106px;
+  height: 106px;
   display: grid;
-  align-content: end;
-  gap: 5px;
-  padding: 70px 12px 12px;
+  place-items: center;
+  padding: 0;
   overflow: visible;
-  border: 1px solid var(--ink);
-  background:
-    radial-gradient(circle, rgb(58 42 40 / 11%) 0 1px, transparent 1px) 0 0 / 12px 12px,
-    #f4dfcc;
-  box-shadow:
-    5px 6px 0 rgb(58 42 40 / 78%),
-    -2px 3px 0 var(--sweet-pink),
-    3px -2px 0 var(--sweet-cyan);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
   pointer-events: auto;
   perspective: 720px;
-  transform: rotate(4deg) scale(0.95);
+  transform: rotate(4deg) scale(0.98);
   transform-origin: 100% 100%;
   transition:
     bottom 620ms cubic-bezier(0.2, 0.8, 0.2, 1),
-    box-shadow 180ms ease,
     filter 180ms ease,
-    min-height 620ms cubic-bezier(0.2, 0.8, 0.2, 1),
+    height 620ms cubic-bezier(0.2, 0.8, 0.2, 1),
     padding 620ms cubic-bezier(0.2, 0.8, 0.2, 1),
     right 620ms cubic-bezier(0.2, 0.8, 0.2, 1),
     transform 620ms cubic-bezier(0.2, 0.8, 0.2, 1),
     width 620ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-.app-entry::before {
-  position: absolute;
-  left: 12px;
-  top: -10px;
-  width: 64px;
-  height: 22px;
-  content: "";
-  opacity: 0.82;
-  background:
-    linear-gradient(90deg, rgb(255 255 255 / 58%), rgb(255 255 255 / 20%)),
-    repeating-linear-gradient(90deg, rgb(58 42 40 / 8%) 0 1px, transparent 1px 8px);
-  transform: rotate(-7deg);
-}
-
-.app-entry::after {
-  position: absolute;
-  right: 8px;
-  bottom: 8px;
-  width: 36px;
-  height: 36px;
-  content: "";
-  border: 1px solid var(--ink);
-  border-radius: 999px;
-  opacity: 0;
-  background: var(--sweet-yellow);
-  transform: rotate(-10deg) scale(0.72);
-  transition:
-    opacity 180ms ease,
-    transform 180ms ease;
-}
-
-.portal-shell.is-complete .app-entry::after {
-  opacity: 0.92;
-  transform: rotate(-10deg) scale(1);
-}
-
 .app-entry:hover,
 .app-entry:focus-visible {
-  box-shadow:
-    7px 8px 0 rgb(58 42 40 / 78%),
-    -3px 4px 0 var(--sweet-pink),
-    4px -3px 0 var(--sweet-cyan);
-  filter: saturate(1.08);
-  transform: rotate(2deg) translateY(-4px) scale(0.98);
+  filter: saturate(1.08) drop-shadow(5px 7px 0 rgb(58 42 40 / 16%));
+  transform: rotate(2deg) translateY(-4px) scale(1.02);
 }
 
 .portal-shell.is-gift-intro-open .app-entry {
   right: 50%;
   bottom: 50%;
-  width: min(68vw, 260px);
-  min-height: 204px;
-  padding: 118px 20px 24px;
-  box-shadow:
-    7px 8px 0 rgb(58 42 40 / 78%),
-    -3px 4px 0 var(--sweet-pink),
-    4px -3px 0 var(--sweet-cyan);
+  width: min(68vw, 250px);
+  height: 236px;
+  align-content: center;
+  justify-items: center;
+  gap: 7px;
+  padding: 0;
+  filter: drop-shadow(8px 10px 0 rgb(58 42 40 / 14%));
   transform: translate(50%, 50%) rotate(2deg) scale(1);
   animation: gift-intro-pop 720ms cubic-bezier(0.18, 0.95, 0.22, 1.14);
 }
 
 .app-visual {
-  position: absolute;
-  top: -6px;
-  right: -8px;
+  position: relative;
   z-index: 3;
   display: grid;
   place-items: center;
-  width: 82px;
-  height: 82px;
+  width: 104px;
+  height: 104px;
   perspective: 360px;
   transform-style: preserve-3d;
   animation: icon-float 3.2s steps(4) infinite;
@@ -495,35 +418,40 @@ a {
 
 .app-icon-image {
   display: block;
-  width: 80px;
-  height: 80px;
+  width: 102px;
+  height: 102px;
   object-fit: contain;
   filter:
-    drop-shadow(5px 6px 0 rgb(58 42 40 / 18%))
+    drop-shadow(7px 9px 0 rgb(58 42 40 / 18%))
     drop-shadow(2px 0 0 rgb(255 138 179 / 34%))
     drop-shadow(-2px 0 0 rgb(117 232 216 / 34%));
   transform: rotateX(6deg) rotateY(-10deg) rotate(4deg);
 }
 
 .portal-shell.is-gift-intro-open .app-visual {
-  top: -4px;
-  right: -14px;
-  width: 146px;
-  height: 146px;
+  width: 156px;
+  height: 156px;
 }
 
 .portal-shell.is-gift-intro-open .app-icon-image {
-  width: 140px;
-  height: 140px;
+  width: 150px;
+  height: 150px;
 }
 
 .app-name,
 .app-state {
-  position: relative;
+  position: absolute;
   z-index: 4;
   max-width: 100%;
   overflow-wrap: anywhere;
   color: var(--ink);
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(8px) rotate(-1deg);
+  transition:
+    opacity 220ms ease,
+    transform 220ms ease;
+  visibility: hidden;
 }
 
 .app-name {
@@ -547,12 +475,20 @@ a {
   transform: rotate(-2deg);
 }
 
-.portal-shell.is-complete .app-state {
-  background: var(--sweet-yellow);
+.portal-shell.is-gift-intro-open .app-name,
+.portal-shell.is-gift-intro-open .app-state {
+  position: relative;
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0) rotate(-1deg);
+  visibility: visible;
 }
 
 .portal-shell.is-gift-intro-open .app-name {
   font-size: 1.4rem;
+  text-shadow:
+    2px 0 var(--sweet-pink),
+    -2px 0 var(--sweet-cyan);
 }
 
 .decor {
@@ -579,40 +515,6 @@ a {
     drop-shadow(3px 4px 0 rgb(58 42 40 / 18%))
     drop-shadow(2px 0 0 rgb(255 138 179 / 22%))
     drop-shadow(-2px 0 0 rgb(117 232 216 / 22%));
-}
-
-.decor::after {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  display: grid;
-  place-items: center;
-  width: 38px;
-  height: 38px;
-  content: "";
-  border: 1px solid var(--ink);
-  border-radius: 999px;
-  color: var(--ink);
-  background:
-    radial-gradient(circle at 50% 50%, transparent 0 34%, rgb(58 42 40 / 18%) 35% 38%, transparent 39%),
-    var(--sweet-yellow);
-  box-shadow:
-    2px 2px 0 rgb(58 42 40 / 76%),
-    -1px 2px 0 var(--sweet-pink);
-  font-family: Courier, "Courier New", monospace;
-  font-size: 0.8rem;
-  font-weight: 900;
-  line-height: 1;
-  opacity: 0;
-  transform: translate(-50%, -50%) rotate(-12deg) scale(0.66);
-  transition:
-    opacity 180ms ease,
-    transform 180ms ease;
-}
-
-.decor.is-collected::after {
-  opacity: 0.94;
-  transform: translate(-50%, -50%) rotate(-12deg) scale(1);
 }
 
 .decor-pop {
@@ -819,25 +721,6 @@ a {
   }
 }
 
-@keyframes entry-celebrate {
-  0%,
-  100% {
-    transform: rotate(3deg) translate(0, 0);
-  }
-
-  25% {
-    transform: rotate(-4deg) translate(-4px, -5px);
-  }
-
-  50% {
-    transform: rotate(5deg) translate(5px, -3px);
-  }
-
-  75% {
-    transform: rotate(-2deg) translate(-2px, 3px);
-  }
-}
-
 @media (max-width: 760px) {
   .portal-page {
     place-items: stretch;
@@ -890,13 +773,6 @@ a {
     height: 18px;
   }
 
-  .collection-status {
-    min-width: 86px;
-    min-height: 31px;
-    padding: 4px 10px;
-    font-size: 0.82rem;
-  }
-
   .simple-patterns {
     opacity: 0.58;
   }
@@ -930,25 +806,19 @@ a {
   .app-entry {
     right: 14px;
     bottom: 86px;
-    width: 108px;
-    min-height: 106px;
-    padding: 52px 9px 9px;
-    box-shadow:
-      4px 5px 0 rgb(58 42 40 / 78%),
-      -2px 2px 0 var(--sweet-pink),
-      2px -2px 0 var(--sweet-cyan);
+    width: 88px;
+    height: 88px;
+    padding: 0;
   }
 
   .app-visual {
-    top: -6px;
-    right: -6px;
-    width: 64px;
-    height: 64px;
+    width: 86px;
+    height: 86px;
   }
 
   .app-icon-image {
-    width: 62px;
-    height: 62px;
+    width: 84px;
+    height: 84px;
   }
 
   .app-name {
@@ -964,31 +834,23 @@ a {
     right: 50%;
     bottom: 50%;
     width: min(72vw, 238px);
-    min-height: 184px;
-    padding: 104px 17px 20px;
+    height: 210px;
+    padding: 0;
     transform: translate(50%, 50%) rotate(2deg) scale(1);
   }
 
   .portal-shell.is-gift-intro-open .app-visual {
-    top: -4px;
-    right: -10px;
-    width: 126px;
-    height: 126px;
+    width: 132px;
+    height: 132px;
   }
 
   .portal-shell.is-gift-intro-open .app-icon-image {
-    width: 122px;
-    height: 122px;
+    width: 128px;
+    height: 128px;
   }
 
   .portal-shell.is-gift-intro-open .app-name {
     font-size: 1.2rem;
-  }
-
-  .decor::after {
-    width: 43px;
-    height: 43px;
-    font-size: 0.72rem;
   }
 
   .decor-lulu {

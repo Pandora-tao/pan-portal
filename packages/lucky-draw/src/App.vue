@@ -5,7 +5,6 @@ import AdvancedChallengeModal, { type AdvancedAnswerResult } from './components/
 import CorrectAnswerAnimation from './components/CorrectAnswerAnimation.vue'
 import DrawStage from './components/DrawStage.vue'
 import FestivalBackground from './components/FestivalBackground.vue'
-import FestivalInteractions from './components/FestivalInteractions.vue'
 import HeroSection from './components/HeroSection.vue'
 import PrizeModal from './components/PrizeModal.vue'
 import QuizModal from './components/QuizModal.vue'
@@ -209,7 +208,6 @@ const returnHomeAfterWrongAnswer = () => {
 
     <a class="portal-link" :href="portalHref" aria-label="返回门户">
       <Home :size="17" />
-      <span>返回门户</span>
     </a>
 
     <HeroSection
@@ -219,8 +217,6 @@ const returnHomeAfterWrongAnswer = () => {
       :action-disabled="drawState.friendshipSunk || (!canDraw && !hasAvailableAdvancedQuestions)"
       @start="startEntry"
     />
-
-    <FestivalInteractions v-if="!isDrawing" />
 
     <DrawStage v-if="isDrawing" :disabled="Boolean(openedPrize)" @open="openZongzi" />
 
@@ -303,13 +299,12 @@ const returnHomeAfterWrongAnswer = () => {
   position: fixed;
   z-index: 12;
   top: calc(18px + env(safe-area-inset-top));
-  left: calc(18px + env(safe-area-inset-left));
+  left: 50%;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 7px;
-  min-height: 38px;
-  padding: 0 13px;
+  width: 40px;
+  height: 40px;
   border: 1px solid rgb(96 108 56 / 28%);
   border-radius: 22px;
   color: var(--duanwu-moss);
@@ -317,10 +312,9 @@ const returnHomeAfterWrongAnswer = () => {
   box-shadow:
     inset 0 1px 0 rgb(247 239 216 / 54%),
     0 14px 34px rgb(48 54 34 / 16%);
-  font-size: 14px;
-  font-weight: 900;
   text-decoration: none;
   backdrop-filter: blur(12px);
+  transform: translateX(-50%);
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease,
@@ -332,7 +326,7 @@ const returnHomeAfterWrongAnswer = () => {
   box-shadow:
     inset 0 1px 0 rgb(247 239 216 / 64%),
     0 18px 40px rgb(48 54 34 / 20%);
-  transform: translateY(-2px);
+  transform: translateX(-50%) translateY(-2px);
 }
 
 .friendship-backdrop {
@@ -381,10 +375,8 @@ const returnHomeAfterWrongAnswer = () => {
 
   .portal-link {
     top: calc(12px + env(safe-area-inset-top));
-    left: calc(12px + env(safe-area-inset-left));
-    min-height: 34px;
-    padding-inline: 11px;
-    font-size: 12px;
+    width: 36px;
+    height: 36px;
   }
 }
 </style>

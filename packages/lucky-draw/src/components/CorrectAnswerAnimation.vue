@@ -20,7 +20,7 @@ const launchCorrectConfetti = () => {
     ticks: 76,
     gravity: 0.82,
     scalar: 0.82,
-    colors: ['#2e7c55', '#9ccf72', '#f2c65d', '#fff7dc'],
+    colors: ['#606C38', '#8B9D83', '#C08E3A', '#E8DCC7'],
   }
 
   confetti({
@@ -79,7 +79,7 @@ onBeforeUnmount(() => {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: rgb(18 42 29 / 22%);
+  background: rgb(48 54 34 / 22%);
   pointer-events: none;
   backdrop-filter: blur(4px);
 }
@@ -90,13 +90,13 @@ onBeforeUnmount(() => {
   gap: 10px;
   width: min(78vw, 320px);
   padding: 28px 24px;
-  border: 1px solid rgb(255 255 255 / 54%);
-  border-radius: 8px;
-  color: #113d2d;
+  border: 1px solid rgb(96 108 56 / 22%);
+  border-radius: 24px;
+  color: var(--duanwu-moss);
   background:
-    radial-gradient(circle at 50% 0%, rgb(255 255 255 / 92%), transparent 42%),
-    linear-gradient(180deg, #fffdf4, #eaf5df);
-  box-shadow: 0 28px 80px rgb(30 67 46 / 24%);
+    radial-gradient(circle at 50% 0%, rgb(247 239 216 / 82%), transparent 42%),
+    linear-gradient(180deg, var(--duanwu-sand), var(--duanwu-oat));
+  box-shadow: 0 28px 80px rgb(48 54 34 / 24%);
   text-align: center;
 }
 
@@ -106,13 +106,13 @@ onBeforeUnmount(() => {
   width: 82px;
   height: 82px;
   border-radius: 999px;
-  color: #fffdf4;
+  color: var(--duanwu-sand);
   background:
-    radial-gradient(circle at 35% 24%, rgb(255 255 255 / 32%), transparent 26%),
-    linear-gradient(145deg, #2e7c55, #79ad55);
+    radial-gradient(circle at 35% 24%, rgb(247 239 216 / 32%), transparent 26%),
+    linear-gradient(145deg, var(--duanwu-moss), var(--duanwu-sage));
   box-shadow:
-    0 0 0 10px rgb(46 124 85 / 12%),
-    0 18px 32px rgb(46 124 85 / 22%);
+    0 0 0 10px rgb(96 108 56 / 12%),
+    0 18px 32px rgb(96 108 56 / 22%);
 }
 
 .correct-card p {
@@ -120,7 +120,7 @@ onBeforeUnmount(() => {
   align-items: center;
   gap: 6px;
   margin: 6px 0 0;
-  color: #b8402f;
+  color: var(--duanwu-terracotta);
   font-size: 14px;
   font-weight: 900;
 }

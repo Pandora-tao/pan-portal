@@ -276,9 +276,27 @@ const returnHomeAfterWrongAnswer = () => {
   gap: 24px;
   padding: 32px;
   background:
-    radial-gradient(circle at 18% 16%, rgb(229 68 43 / 12%), transparent 28%),
-    radial-gradient(circle at 86% 10%, rgb(43 117 84 / 16%), transparent 26%),
-    linear-gradient(145deg, #f8f4e7 0%, #eff7ed 44%, #dfeee6 100%);
+    linear-gradient(180deg, rgb(232 220 199 / 48%), rgb(212 184 149 / 22%)),
+    url("./assets/duanwu-riverbank.png") center / cover,
+    linear-gradient(145deg, var(--duanwu-sand) 0%, var(--duanwu-oat) 100%);
+}
+
+.festival-page::before {
+  position: absolute;
+  inset: 0;
+  content: "";
+  pointer-events: none;
+  opacity: 0.22;
+  background-image:
+    radial-gradient(circle, rgb(48 54 34 / 18%) 0 1px, transparent 1px),
+    radial-gradient(circle, rgb(247 239 216 / 34%) 0 1px, transparent 1px);
+  background-position:
+    0 0,
+    8px 10px;
+  background-size:
+    18px 18px,
+    22px 22px;
+  mix-blend-mode: multiply;
 }
 
 .portal-link {
@@ -292,11 +310,13 @@ const returnHomeAfterWrongAnswer = () => {
   gap: 7px;
   min-height: 38px;
   padding: 0 13px;
-  border: 1px solid rgb(46 124 85 / 24%);
-  border-radius: 999px;
-  color: #164f38;
-  background: rgb(255 253 247 / 84%);
-  box-shadow: 0 14px 34px rgb(35 84 50 / 14%);
+  border: 1px solid rgb(96 108 56 / 28%);
+  border-radius: 22px;
+  color: var(--duanwu-moss);
+  background: rgb(232 220 199 / 86%);
+  box-shadow:
+    inset 0 1px 0 rgb(247 239 216 / 54%),
+    0 14px 34px rgb(48 54 34 / 16%);
   font-size: 14px;
   font-weight: 900;
   text-decoration: none;
@@ -308,8 +328,10 @@ const returnHomeAfterWrongAnswer = () => {
 }
 
 .portal-link:hover {
-  background: rgb(255 253 247 / 94%);
-  box-shadow: 0 18px 40px rgb(35 84 50 / 18%);
+  background: rgb(247 239 216 / 92%);
+  box-shadow:
+    inset 0 1px 0 rgb(247 239 216 / 64%),
+    0 18px 40px rgb(48 54 34 / 20%);
   transform: translateY(-2px);
 }
 
@@ -330,17 +352,17 @@ const returnHomeAfterWrongAnswer = () => {
 }
 
 .friendship-modal h2 {
-  color: #103d2d;
+  color: var(--duanwu-moss);
   font-size: 26px;
 }
 
 .friendship-modal p:not(.modal-kicker) {
-  color: #5b7165;
+  color: rgb(48 54 34 / 72%);
   line-height: 1.7;
 }
 
 .modal-kicker {
-  color: #b8402f;
+  color: var(--duanwu-terracotta);
   font-size: 13px;
   font-weight: 800;
 }

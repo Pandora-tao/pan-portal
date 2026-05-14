@@ -52,8 +52,8 @@ onMounted(() => {
 <style scoped>
 .prize-backdrop {
   background:
-    radial-gradient(circle at 50% 38%, rgb(255 237 171 / 28%), transparent 32%),
-    rgb(18 42 29 / 54%);
+    radial-gradient(circle at 50% 38%, rgb(192 142 58 / 24%), transparent 32%),
+    rgb(48 54 34 / 58%);
 }
 
 .prize-modal {
@@ -65,21 +65,21 @@ onMounted(() => {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  color: #b8402f;
+  color: var(--duanwu-terracotta);
   font-size: 13px;
   font-weight: 800;
 }
 
 .prize-modal h2 {
   margin: 0;
-  color: #183027;
+  color: var(--duanwu-ink);
   font-size: 24px;
   line-height: 1.35;
 }
 
 .result-label {
   margin: 18px 0 0;
-  color: #657568;
+  color: rgb(48 54 34 / 68%);
   font-size: 14px;
   font-weight: 800;
 }
@@ -87,7 +87,7 @@ onMounted(() => {
 .prize-name {
   display: block;
   margin: 8px auto 6px;
-  color: #b8402f;
+  color: var(--duanwu-terracotta);
   font-size: clamp(28px, 9vw, 44px);
   line-height: 1.2;
 }
@@ -95,7 +95,7 @@ onMounted(() => {
 .prize-note {
   max-width: 320px;
   margin: 12px auto 0;
-  color: #657568;
+  color: rgb(48 54 34 / 68%);
   font-size: 14px;
   line-height: 1.7;
 }

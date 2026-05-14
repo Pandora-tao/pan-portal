@@ -29,21 +29,57 @@ defineEmits<{
 .hero {
   position: relative;
   z-index: 2;
-  width: min(100%, 760px);
-  min-height: 500px;
+  width: min(100%, 680px);
+  min-height: 480px;
   margin: 0 auto;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
+  justify-content: center;
+  border: 1px solid rgb(96 108 56 / 22%);
+  border-radius: 32px;
+  padding: 56px 34px 48px;
+  background:
+    radial-gradient(circle at 18% 8%, rgb(247 239 216 / 82%), transparent 28%),
+    linear-gradient(135deg, rgb(232 220 199 / 92%), rgb(212 184 149 / 76%));
+  box-shadow:
+    inset 0 1px 0 rgb(247 239 216 / 56%),
+    0 26px 70px rgb(48 54 34 / 20%);
+  overflow: hidden;
+}
+
+.hero::before,
+.hero::after {
+  position: absolute;
+  content: "";
+  pointer-events: none;
+}
+
+.hero::before {
+  inset: 18px;
+  border: 1px solid rgb(96 108 56 / 18%);
+  border-radius: 26px;
+}
+
+.hero::after {
+  right: -70px;
+  bottom: -88px;
+  width: 280px;
+  height: 220px;
+  border-radius: 68% 32% 66% 34%;
+  background:
+    linear-gradient(115deg, rgb(139 157 131 / 26%), rgb(96 108 56 / 16)),
+    radial-gradient(circle at 28% 30%, rgb(247 239 216 / 28%), transparent 32%);
+  transform: rotate(-18deg);
 }
 
 h1 {
   position: relative;
   z-index: 2;
   max-width: min(100%, 860px);
-  margin: 32px 0 174px;
-  color: #073a29;
+  margin: 0 0 118px;
+  color: var(--duanwu-moss);
   font-family: "Ma Shan Zheng", "STKaiti", "KaiTi", serif;
   font-size: clamp(42px, 7.8vw, 82px);
   font-weight: 400;
@@ -51,8 +87,8 @@ h1 {
   letter-spacing: 0;
   white-space: nowrap;
   text-shadow:
-    0 2px 0 rgb(255 255 255 / 58%),
-    0 18px 36px rgb(8 40 28 / 20%);
+    0 2px 0 rgb(247 239 216 / 62%),
+    0 18px 34px rgb(48 54 34 / 18%);
 }
 
 h1::before,
@@ -63,7 +99,7 @@ h1::after {
   height: 2px;
   content: "";
   border-radius: 999px;
-  background: linear-gradient(90deg, transparent, #0b4d36, transparent);
+  background: linear-gradient(90deg, transparent, var(--duanwu-moss), transparent);
 }
 
 h1::before {
@@ -79,31 +115,33 @@ h1::after {
   min-height: 54px;
   padding-inline: 30px;
   font-size: 18px;
+  position: relative;
+  z-index: 3;
 }
 
 .title-ribbon {
   position: absolute;
   z-index: 1;
-  top: 78px;
+  top: 128px;
   left: 50%;
   width: min(88vw, 680px);
   height: 18px;
   border-radius: 999px;
   background:
-    radial-gradient(circle at 24% 50%, rgb(233 188 82 / 42%), transparent 13%),
-    radial-gradient(circle at 76% 50%, rgb(233 188 82 / 42%), transparent 13%),
-    linear-gradient(90deg, transparent, rgb(47 126 86 / 16), transparent);
+    radial-gradient(circle at 24% 50%, rgb(192 142 58 / 35%), transparent 13%),
+    radial-gradient(circle at 76% 50%, rgb(192 142 58 / 35%), transparent 13%),
+    linear-gradient(90deg, transparent, rgb(96 108 56 / 18), transparent);
   transform: translateX(-50%);
 }
 
 .title-ornament {
   position: absolute;
   z-index: 1;
-  top: 30px;
+  top: 42px;
   width: 86px;
   height: 54px;
   opacity: 0.82;
-  filter: drop-shadow(0 12px 14px rgb(35 84 50 / 12%));
+  filter: drop-shadow(0 12px 14px rgb(48 54 34 / 14%));
 }
 
 .title-ornament::before,
@@ -111,7 +149,7 @@ h1::after {
   position: absolute;
   content: "";
   border-radius: 80% 0 80% 0;
-  background: linear-gradient(135deg, #2f7e56, #8eb95e);
+  background: linear-gradient(135deg, var(--duanwu-moss), var(--duanwu-sage));
 }
 
 .title-ornament::before {
@@ -137,12 +175,12 @@ h1::after {
 
 @media (max-width: 760px) {
   .hero {
-    min-height: 70svh;
-    padding-top: 0;
+    min-height: 64svh;
+    padding: 46px 22px 34px;
   }
 
   h1 {
-    margin: 18px 0 162px;
+    margin: 0 0 126px;
     font-size: clamp(32px, 9.4vw, 44px);
   }
 
@@ -164,7 +202,7 @@ h1::after {
   }
 
   .title-ribbon {
-    top: 54px;
+    top: 94px;
     height: 14px;
   }
 

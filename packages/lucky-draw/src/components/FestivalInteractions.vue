@@ -80,13 +80,15 @@ const triggerCharm = (event: MouseEvent, charm: Charm) => {
   position: absolute;
   width: 58px;
   height: 58px;
-  border: 1px solid rgb(47 126 86 / 24%);
-  border-radius: 999px;
-  color: #0f4b36;
+  border: 1px solid rgb(96 108 56 / 24%);
+  border-radius: 24px 24px 28px 18px;
+  color: var(--duanwu-moss);
   background:
-    radial-gradient(circle at 32% 25%, rgb(255 255 255 / 78%), transparent 30%),
-    linear-gradient(160deg, #fff7dc, #d9e9c6);
-  box-shadow: 0 14px 32px rgb(35 84 50 / 14%);
+    radial-gradient(circle at 32% 25%, rgb(247 239 216 / 78%), transparent 30%),
+    linear-gradient(160deg, var(--duanwu-sand), var(--duanwu-sage));
+  box-shadow:
+    inset 0 1px 0 rgb(247 239 216 / 50%),
+    0 14px 32px rgb(48 54 34 / 14%);
   cursor: pointer;
   font-size: 14px;
   font-weight: 900;
@@ -117,11 +119,11 @@ const triggerCharm = (event: MouseEvent, charm: Charm) => {
   max-width: min(78vw, 360px);
   margin: 0;
   padding: 10px 14px;
-  border: 1px solid rgb(47 126 86 / 20%);
-  border-radius: 999px;
-  color: #0f4b36;
-  background: rgb(255 253 247 / 86%);
-  box-shadow: 0 18px 42px rgb(35 84 50 / 14%);
+  border: 1px solid rgb(96 108 56 / 20%);
+  border-radius: 24px;
+  color: var(--duanwu-moss);
+  background: rgb(232 220 199 / 90%);
+  box-shadow: 0 18px 42px rgb(48 54 34 / 16%);
   font-size: 14px;
   font-weight: 800;
   text-align: center;

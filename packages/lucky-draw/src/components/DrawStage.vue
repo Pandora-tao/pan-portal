@@ -69,7 +69,7 @@ const burstConfettiFrom = (target: HTMLElement) => {
     ticks: 72,
     gravity: 0.88,
     origin,
-    colors: ['#bd3f2f', '#f0c84d', '#2f8b57', '#f7f0d3', '#86b96a'],
+    colors: ['#C66B3D', '#C08E3A', '#606C38', '#E8DCC7', '#8B9D83'],
   })
 }
 
@@ -195,27 +195,29 @@ onMounted(animateEntrance)
 .draw-stage {
   position: relative;
   z-index: 1;
-  width: min(100%, 720px);
+  width: min(100%, 760px);
   margin: 0 auto;
   display: grid;
   gap: 20px;
-  padding: 26px;
-  border: 1px solid rgb(70 116 84 / 24%);
-  border-radius: 8px;
+  padding: 28px;
+  border: 1px solid rgb(96 108 56 / 24%);
+  border-radius: 32px;
   background:
-    radial-gradient(circle at 20% 18%, rgb(255 255 255 / 82%), transparent 34%),
-    linear-gradient(180deg, rgb(255 255 255 / 72%), rgb(245 250 238 / 54%)),
-    repeating-linear-gradient(90deg, transparent 0 80px, rgb(46 124 85 / 7%) 80px 82px);
+    radial-gradient(circle at 20% 12%, rgb(247 239 216 / 72%), transparent 34%),
+    radial-gradient(ellipse at 50% 84%, rgb(139 157 131 / 34%), transparent 48%),
+    linear-gradient(180deg, rgb(232 220 199 / 88%), rgb(212 184 149 / 72%)),
+    repeating-linear-gradient(90deg, transparent 0 80px, rgb(96 108 56 / 7%) 80px 82px);
   box-shadow:
-    inset 0 -40px 80px rgb(71 125 89 / 12%),
-    0 24px 80px rgb(42 66 52 / 12%);
-  backdrop-filter: blur(14px);
+    inset 0 -42px 76px rgb(96 108 56 / 12%),
+    inset 0 1px 0 rgb(247 239 216 / 58%),
+    0 24px 80px rgb(48 54 34 / 18%);
+  backdrop-filter: blur(10px);
 }
 
 .stage-header {
   display: grid;
   gap: 6px;
-  color: #244836;
+  color: var(--duanwu-moss);
   text-align: center;
 }
 
@@ -234,7 +236,7 @@ onMounted(animateEntrance)
 }
 
 .stage-header span {
-  color: #64786a;
+  color: rgb(48 54 34 / 68%);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -243,6 +245,11 @@ onMounted(animateEntrance)
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 14px 16px;
+  border-radius: 28px;
+  padding: 16px;
+  background:
+    repeating-linear-gradient(-7deg, transparent 0 34px, rgb(247 239 216 / 24%) 34px 38px, transparent 38px 68px),
+    linear-gradient(90deg, rgb(139 157 131 / 35%), rgb(96 108 56 / 22%), rgb(139 157 131 / 35%));
   perspective: 760px;
 }
 
@@ -268,7 +275,7 @@ onMounted(animateEntrance)
   width: 68%;
   height: 17%;
   border-radius: 999px;
-  background: radial-gradient(ellipse, rgb(24 48 35 / 34%), transparent 68%);
+  background: radial-gradient(ellipse, rgb(48 54 34 / 30%), transparent 68%);
   transform: translateX(-50%);
   filter: blur(3px);
 }
@@ -280,7 +287,7 @@ onMounted(animateEntrance)
   height: clamp(88px, 19vw, 118px);
   transform: translate(-50%, -55%) rotateX(7deg) rotateY(-9deg);
   transform-style: preserve-3d;
-  filter: drop-shadow(0 14px 14px rgb(23 65 39 / 18%));
+  filter: drop-shadow(0 14px 14px rgb(48 54 34 / 18%));
 }
 
 .leaf {
@@ -301,13 +308,13 @@ onMounted(animateEntrance)
 
 .leaf::before {
   background:
-    linear-gradient(105deg, transparent 0 45%, rgb(239 246 164 / 34%) 46% 48%, transparent 49%),
-    repeating-linear-gradient(78deg, transparent 0 11px, rgb(255 255 255 / 15%) 11px 13px, transparent 13px 23px);
+    linear-gradient(105deg, transparent 0 45%, rgb(232 220 199 / 34%) 46% 48%, transparent 49%),
+    repeating-linear-gradient(78deg, transparent 0 11px, rgb(232 220 199 / 15%) 11px 13px, transparent 13px 23px);
   mix-blend-mode: soft-light;
 }
 
 .leaf::after {
-  background: radial-gradient(circle at 30% 20%, rgb(255 255 255 / 22%), transparent 24%);
+  background: radial-gradient(circle at 30% 20%, rgb(232 220 199 / 22%), transparent 24%);
 }
 
 .leaf-back {
@@ -315,10 +322,10 @@ onMounted(animateEntrance)
   inset: 4% 3% 7%;
   clip-path: polygon(50% 0, 99% 86%, 6% 91%);
   background:
-    linear-gradient(116deg, #89b85b 0%, #276f41 52%, #0e442a 100%);
+    linear-gradient(116deg, #8b9d83 0%, #606c38 52%, #4f6634 100%);
   box-shadow:
     inset -18px -20px 24px rgb(4 38 23 / 36%),
-    inset 16px 9px 16px rgb(255 255 255 / 16%);
+    inset 16px 9px 16px rgb(232 220 199 / 16%);
 }
 
 .leaf-left {
@@ -330,10 +337,10 @@ onMounted(animateEntrance)
   clip-path: polygon(86% 0, 100% 87%, 2% 92%, 10% 34%);
   transform-origin: 86% 76%;
   background:
-    radial-gradient(circle at 35% 15%, rgb(255 255 255 / 20%), transparent 18%),
-    linear-gradient(132deg, #a8c968 0%, #3d8c48 48%, #125132 100%);
+    radial-gradient(circle at 35% 15%, rgb(232 220 199 / 20%), transparent 18%),
+    linear-gradient(132deg, #8b9d83 0%, #606c38 48%, #4f6634 100%);
   box-shadow:
-    inset 13px 7px 16px rgb(255 255 255 / 14%),
+    inset 13px 7px 16px rgb(232 220 199 / 14%),
     inset -13px -20px 18px rgb(8 59 32 / 26%);
 }
 
@@ -346,10 +353,10 @@ onMounted(animateEntrance)
   clip-path: polygon(15% 0, 91% 34%, 99% 92%, 0 87%);
   transform-origin: 14% 76%;
   background:
-    radial-gradient(circle at 68% 17%, rgb(255 255 255 / 18%), transparent 18%),
-    linear-gradient(226deg, #8fbd58 0%, #2d7f42 54%, #0d482b 100%);
+    radial-gradient(circle at 68% 17%, rgb(232 220 199 / 18%), transparent 18%),
+    linear-gradient(226deg, #8b9d83 0%, #606c38 54%, #4f6634 100%);
   box-shadow:
-    inset -12px 8px 15px rgb(255 255 255 / 12%),
+    inset -12px 8px 15px rgb(232 220 199 / 12%),
     inset 14px -20px 20px rgb(4 46 27 / 32%);
 }
 
@@ -362,9 +369,9 @@ onMounted(animateEntrance)
   clip-path: polygon(0 28%, 50% 0, 100% 28%, 89% 100%, 11% 100%);
   transform-origin: 50% 20%;
   background:
-    linear-gradient(156deg, #569b48 0%, #236e3d 48%, #0a4228 100%);
+    linear-gradient(156deg, #8b9d83 0%, #606c38 48%, #4f6634 100%);
   box-shadow:
-    inset 11px 8px 13px rgb(255 255 255 / 10%),
+    inset 11px 8px 13px rgb(232 220 199 / 10%),
     inset -16px -13px 18px rgb(3 37 23 / 34%);
 }
 
@@ -377,9 +384,9 @@ onMounted(animateEntrance)
   clip-path: polygon(50% 0, 100% 72%, 51% 100%, 0 72%);
   transform-origin: 50% 85%;
   background:
-    linear-gradient(162deg, #d0d96f 0%, #6aa050 55%, #236a38 100%);
+    linear-gradient(162deg, #b0b76c 0%, #8b9d83 55%, #606c38 100%);
   box-shadow:
-    inset 8px 6px 10px rgb(255 255 255 / 16%),
+    inset 8px 6px 10px rgb(232 220 199 / 16%),
     inset -10px -11px 12px rgb(24 72 37 / 24%);
 }
 
@@ -393,12 +400,12 @@ onMounted(animateEntrance)
   border-radius: 46% 46% 40% 40%;
   opacity: 0;
   background:
-    radial-gradient(circle at 29% 24%, #fffef4 0 15%, transparent 16%),
-    radial-gradient(circle at 68% 31%, #fff8db 0 11%, transparent 12%),
-    linear-gradient(148deg, #fff9df 0%, #f2dfaa 100%);
+    radial-gradient(circle at 29% 24%, #e8dcc7 0 15%, transparent 16%),
+    radial-gradient(circle at 68% 31%, #d4b895 0 11%, transparent 12%),
+    linear-gradient(148deg, #e8dcc7 0%, #d4b895 100%);
   box-shadow:
     inset -9px -11px 13px rgb(200 157 75 / 20%),
-    inset 8px 7px 10px rgb(255 255 255 / 42%),
+    inset 8px 7px 10px rgb(232 220 199 / 42%),
     0 8px 14px rgb(36 59 34 / 17%);
   transform: translateX(-50%) scale(0.78);
   will-change: transform, opacity;
@@ -438,7 +445,7 @@ onMounted(animateEntrance)
   min-width: 4px;
   height: 13%;
   border-radius: 999px;
-  background: #213025;
+  background: #303622;
 }
 
 .eye-left {
@@ -455,7 +462,7 @@ onMounted(animateEntrance)
   top: 54%;
   width: 28%;
   height: 17%;
-  border-bottom: 2px solid #213025;
+  border-bottom: 2px solid #303622;
   border-radius: 0 0 999px 999px;
   transform: translateX(-50%);
 }
@@ -466,7 +473,7 @@ onMounted(animateEntrance)
   width: 18%;
   height: 11%;
   border-radius: 999px;
-  background: #ef8c5b;
+  background: #c66b3d;
   opacity: 0.8;
 }
 
@@ -483,7 +490,7 @@ onMounted(animateEntrance)
   z-index: 9;
   border-radius: 999px;
   background:
-    repeating-linear-gradient(90deg, rgb(255 235 163 / 88%) 0 4px, rgb(142 94 42 / 88%) 4px 8px);
+    repeating-linear-gradient(90deg, rgb(232 220 199 / 90%) 0 4px, rgb(176 139 110 / 90%) 4px 8px);
   box-shadow:
     0 2px 3px rgb(34 44 24 / 20%),
     inset 0 -1px 1px rgb(74 50 20 / 28%);
@@ -524,8 +531,8 @@ onMounted(animateEntrance)
   height: 15%;
   border-radius: 48%;
   background:
-    radial-gradient(circle at 32% 28%, #fff0b1 0 20%, transparent 21%),
-    radial-gradient(circle at 58% 58%, #8b5e2b 0 28%, #d7af5c 29% 100%);
+    radial-gradient(circle at 32% 28%, #e8dcc7 0 20%, transparent 21%),
+    radial-gradient(circle at 58% 58%, #8a5f3e 0 28%, #c08e3a 29% 100%);
   box-shadow: 0 4px 7px rgb(20 46 28 / 24%);
   transform: translateX(-50%);
   will-change: transform, opacity;
@@ -556,7 +563,7 @@ onMounted(animateEntrance)
   z-index: 8;
   height: 2px;
   border-radius: 999px;
-  background: rgb(228 239 158 / 52%);
+  background: rgb(232 220 199 / 50%);
   box-shadow: 0 1px 1px rgb(19 55 32 / 12%);
 }
 
@@ -589,7 +596,7 @@ onMounted(animateEntrance)
   width: 14%;
   height: 28%;
   border-radius: 999px;
-  background: linear-gradient(180deg, rgb(255 255 255 / 38%), transparent);
+  background: linear-gradient(180deg, rgb(232 220 199 / 38%), transparent);
   filter: blur(1px);
   transform: rotate(29deg);
   pointer-events: none;
@@ -610,22 +617,22 @@ onMounted(animateEntrance)
 
 .bit-one {
   margin-left: -22px;
-  background: #bd3f2f;
+  background: #c66b3d;
 }
 
 .bit-two {
   margin-left: 8px;
-  background: #f0c84d;
+  background: #c08e3a;
 }
 
 .bit-three {
   margin-left: 26px;
-  background: #2f8b57;
+  background: #606c38;
 }
 
 .bit-four {
   margin-left: -4px;
-  background: #f7f0d3;
+  background: #e8dcc7;
 }
 
 .zongzi-pick.is-opening .zongzi-shadow {
@@ -655,6 +662,7 @@ onMounted(animateEntrance)
     max-height: calc(100svh - 92px);
     gap: 12px;
     padding: 16px;
+    border-radius: 26px;
   }
 
   .stage-header p {
@@ -667,6 +675,8 @@ onMounted(animateEntrance)
 
   .zongzi-grid {
     gap: 6px 8px;
+    padding: 10px;
+    border-radius: 22px;
   }
 
   .zongzi-pick {

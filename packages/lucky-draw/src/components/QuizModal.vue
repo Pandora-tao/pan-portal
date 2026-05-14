@@ -90,7 +90,7 @@ const selectOption = (value: string) => {
 
 .modal-kicker {
   margin: 0 0 10px;
-  color: #b8402f;
+  color: var(--duanwu-terracotta);
   font-size: 13px;
   font-weight: 800;
 }
@@ -98,7 +98,7 @@ const selectOption = (value: string) => {
 .modal h2 {
   margin: 0 0 22px;
   padding-right: 26px;
-  color: #183027;
+  color: var(--duanwu-ink);
   font-size: 24px;
   line-height: 1.35;
 }
@@ -114,14 +114,16 @@ const selectOption = (value: string) => {
   align-items: center;
   gap: 10px;
   min-height: 52px;
-  border: 1px solid rgb(46 124 85 / 20%);
-  border-radius: 8px;
+  border: 1px solid rgb(96 108 56 / 22%);
+  border-radius: 20px;
   padding: 10px 12px;
-  color: #1a3f30;
+  color: var(--duanwu-ink);
   background:
-    radial-gradient(circle at 20% 15%, rgb(255 255 255 / 84%), transparent 32%),
-    linear-gradient(160deg, #f9fcf4, #edf6e8);
-  box-shadow: 0 10px 24px rgb(35 84 50 / 8%);
+    radial-gradient(circle at 20% 15%, rgb(247 239 216 / 84%), transparent 32%),
+    linear-gradient(160deg, var(--duanwu-sand), rgb(139 157 131 / 28%));
+  box-shadow:
+    inset 0 1px 0 rgb(247 239 216 / 48%),
+    0 10px 24px rgb(48 54 34 / 8%);
   cursor: pointer;
   text-align: left;
   transition:
@@ -133,11 +135,11 @@ const selectOption = (value: string) => {
 
 .choice-option:hover,
 .choice-option.selected {
-  border-color: #2e7c55;
+  border-color: var(--duanwu-moss);
   background:
-    radial-gradient(circle at 20% 15%, rgb(255 255 255 / 90%), transparent 32%),
-    linear-gradient(160deg, #f7f2d8, #dceecf);
-  box-shadow: 0 14px 30px rgb(35 84 50 / 14%);
+    radial-gradient(circle at 20% 15%, rgb(247 239 216 / 90%), transparent 32%),
+    linear-gradient(160deg, var(--duanwu-sand), rgb(192 142 58 / 18%));
+  box-shadow: 0 14px 30px rgb(48 54 34 / 14%);
   transform: translateY(-2px);
 }
 
@@ -148,8 +150,8 @@ const selectOption = (value: string) => {
   width: 28px;
   height: 28px;
   border-radius: 999px;
-  color: #fffdf4;
-  background: #2e7c55;
+  color: var(--duanwu-sand);
+  background: var(--duanwu-moss);
   font-weight: 900;
 }
 
@@ -161,7 +163,7 @@ const selectOption = (value: string) => {
 
 .form-error {
   margin: 12px 0 0;
-  color: #b8402f;
+  color: var(--duanwu-terracotta);
   font-size: 14px;
 }
 

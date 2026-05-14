@@ -9,13 +9,14 @@ import appleUrl from './assets/apple-smile.svg'
 import bananaUrl from './assets/banana-smile.svg'
 import watermelonUrl from './assets/watermelon-smile.svg'
 import strawberryUrl from './assets/strawberry-smile.svg'
+import luckyDrawIconUrl from './assets/duanwu-lucky-gift-3d.png'
 
 
 interface PortalApp {
   id: string
   name: string
   href: string
-  icon: 'festival'
+  image: string
 }
 
 type DecorKey = 'lulu' | 'grape' | 'pudding' | 'watermelon' | 'banana' | 'apple' | 'strawberry'
@@ -28,7 +29,7 @@ const apps: PortalApp[] = [
     id: 'lucky-draw',
     name: '端午赠礼',
     href: luckyDrawRoute,
-    icon: 'festival',
+    image: luckyDrawIconUrl,
   },
 ]
 
@@ -405,16 +406,8 @@ onBeforeUnmount(() => {
           @touchmove.stop
           @touchend.stop
         >
-          <span class="app-visual" :class="`app-visual-${app.icon}`" aria-hidden="true">
-            <span class="gift-box">
-              <span class="box-body"></span>
-              <span class="box-lid"></span>
-              <span class="ribbon ribbon-v"></span>
-              <span class="ribbon ribbon-h"></span>
-              <span class="bow"></span>
-            </span>
-            <span class="spark spark-one"></span>
-            <span class="spark spark-two"></span>
+          <span class="app-visual" aria-hidden="true">
+            <img class="app-icon-image" :src="app.image" alt="" decoding="async" loading="lazy" />
           </span>
           <span class="app-name">{{ app.name }}</span>
         </a>

@@ -12,6 +12,8 @@
 
 * {
   box-sizing: border-box;
+  user-select: none;
+  -webkit-user-select: none;
 }
 
 html {
@@ -31,6 +33,11 @@ body {
 button,
 textarea {
   font: inherit;
+}
+
+textarea {
+  user-select: text;
+  -webkit-user-select: text;
 }
 
 button {

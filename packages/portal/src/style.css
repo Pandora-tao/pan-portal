@@ -416,16 +416,50 @@ a {
   transform: translateY(-4px) rotateX(8deg) rotateY(-10deg);
 }
 
-.app-icon-image {
+.quiz-card {
+  position: relative;
+  z-index: 2;
+  width: 68px;
+  height: 78px;
+  padding: 10px 8px 8px;
+  background: var(--paper);
+  border: 2px solid var(--ink);
+  box-shadow:
+    3px 0 0 var(--sweet-pink),
+    -3px 0 0 var(--sweet-cyan),
+    5px 5px 0 rgb(58 42 40 / 14%);
+  transform: rotate(-2deg);
+}
+
+.quiz-staple {
+  position: absolute;
+  top: -3px;
+  left: 10px;
+  width: 12px;
+  height: 4px;
+  background: #b0b0b0;
+  box-shadow: 0 1px 1px rgb(0 0 0 / 18%);
+}
+
+.quiz-rule {
   display: block;
-  width: 102px;
-  height: 102px;
-  object-fit: contain;
-  filter:
-    drop-shadow(7px 9px 0 rgb(58 42 40 / 18%))
-    drop-shadow(2px 0 0 rgb(255 138 179 / 34%))
-    drop-shadow(-2px 0 0 rgb(117 232 216 / 34%));
-  transform: rotateX(6deg) rotateY(-10deg) rotate(4deg);
+  height: 2px;
+  margin-bottom: 8px;
+  background: rgb(58 42 40 / 14%);
+  border-radius: 1px;
+}
+
+.quiz-bubble {
+  position: absolute;
+  right: 10px;
+  bottom: 8px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: var(--ink);
+  box-shadow:
+    2px 0 0 var(--sweet-pink),
+    -2px 0 0 var(--sweet-cyan);
 }
 
 .portal-shell.is-gift-intro-open .app-visual {
@@ -433,9 +467,34 @@ a {
   height: 156px;
 }
 
-.portal-shell.is-gift-intro-open .app-icon-image {
-  width: 150px;
-  height: 150px;
+.portal-shell.is-gift-intro-open .quiz-card {
+  width: 110px;
+  height: 124px;
+  padding: 16px 12px 12px;
+  border-width: 3px;
+  box-shadow:
+    4px 0 0 var(--sweet-pink),
+    -4px 0 0 var(--sweet-cyan),
+    7px 7px 0 rgb(58 42 40 / 14%);
+}
+
+.portal-shell.is-gift-intro-open .quiz-staple {
+  top: -4px;
+  left: 16px;
+  width: 16px;
+  height: 5px;
+}
+
+.portal-shell.is-gift-intro-open .quiz-rule {
+  height: 3px;
+  margin-bottom: 12px;
+}
+
+.portal-shell.is-gift-intro-open .quiz-bubble {
+  right: 14px;
+  bottom: 10px;
+  width: 16px;
+  height: 16px;
 }
 
 .app-name,

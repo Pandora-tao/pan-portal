@@ -3,7 +3,6 @@ import { nextTick, onBeforeUnmount, onMounted, reactive, ref, type ComponentPubl
 import * as Matter from 'matter-js'
 import { Sparkles } from 'lucide-vue-next'
 import avatarUrl from './assets/pan-avatar.png'
-import luckyDrawIconUrl from './assets/duanwu-lucky-gift-3d.png'
 import DraggableDecoration from './draggable-decorations/DraggableDecoration.vue'
 import {
   createDecorationStyles,
@@ -16,7 +15,6 @@ interface PortalApp {
   id: string
   name: string
   href: string
-  image: string
 }
 
 const luckyDrawRoute = import.meta.env.VITE_LUCKY_DRAW_ROUTE ?? '/lucky-draw/'
@@ -25,9 +23,8 @@ const chatRoute = import.meta.env.VITE_CHAT_ROUTE ?? '/chat/'
 const apps: PortalApp[] = [
   {
     id: 'lucky-draw',
-    name: '端午赠礼',
+    name: '陶攀问答局',
     href: luckyDrawRoute,
-    image: luckyDrawIconUrl,
   },
 ]
 
@@ -339,7 +336,13 @@ onBeforeUnmount(() => {
           @touchend.stop
         >
           <span class="app-visual" aria-hidden="true">
-            <img class="app-icon-image" :src="app.image" alt="" decoding="async" loading="lazy" />
+            <span class="quiz-card">
+              <span class="quiz-staple"></span>
+              <span class="quiz-rule"></span>
+              <span class="quiz-rule"></span>
+              <span class="quiz-rule"></span>
+              <span class="quiz-bubble"></span>
+            </span>
           </span>
           <span class="app-name">{{ app.name }}</span>
           <span class="app-state">进入</span>

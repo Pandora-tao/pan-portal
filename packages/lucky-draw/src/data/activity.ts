@@ -30,7 +30,7 @@ export interface ZongziItem {
   rotate: number
 }
 
-export const title = '有奖问答'
+export const title = '端午游园答题抽奖'
 
 export const basicQuizzes: Quiz[] = [
   {

@@ -12,7 +12,7 @@ const messages = ref<ChatMessage[]>([
   {
     id: 1,
     role: 'assistant',
-    content: '嗨，想聊点什么？我会尽量按你给我的资料和说话方式来回应。',
+    content: '嗨，想聊点什么？你可以慢慢说，我会认真听。',
   },
 ])
 const draft = ref('')
@@ -95,7 +95,7 @@ async function scrollToBottom() {
         <div class="avatar-mark" aria-hidden="true">
           <MessageCircle :size="25" :stroke-width="2.25" />
         </div>
-        <div>
+        <div class="chat-title">
           <p><Sparkles :size="15" />Pan's chat</p>
           <h1>和我聊聊</h1>
         </div>

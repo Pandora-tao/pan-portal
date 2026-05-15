@@ -135,8 +135,8 @@ onMounted(animateEntrance)
 <template>
   <section class="draw-stage" aria-label="粽子抽奖区">
     <div class="stage-header">
-      <p><Sparkles :size="16" />选一个粽子</p>
-      <span>9 个粽子里藏着今日赠礼，点击一个立即开奖</span>
+      <p><Sparkles :size="16" />粽子摊开张</p>
+      <span>9 个粽子里藏着今日赠礼，点一个拆开开奖</span>
     </div>
 
     <div class="zongzi-grid">
@@ -195,28 +195,41 @@ onMounted(animateEntrance)
 .draw-stage {
   position: relative;
   z-index: 1;
-  width: min(100%, 760px);
+  width: min(100%, 820px);
   margin: 0 auto;
   display: grid;
-  gap: 20px;
+  gap: 18px;
   padding: 28px;
   border: 1px solid rgb(96 108 56 / 24%);
-  border-radius: 32px;
+  border-radius: 28px;
   background:
-    radial-gradient(circle at 20% 12%, rgb(247 239 216 / 72%), transparent 34%),
-    radial-gradient(ellipse at 50% 84%, rgb(139 157 131 / 34%), transparent 48%),
-    linear-gradient(180deg, rgb(232 220 199 / 88%), rgb(212 184 149 / 72%)),
-    repeating-linear-gradient(90deg, transparent 0 80px, rgb(96 108 56 / 7%) 80px 82px);
+    radial-gradient(circle at 16% 8%, rgb(232 220 199 / 68%), transparent 32%),
+    radial-gradient(ellipse at 50% 92%, rgb(96 108 56 / 30%), transparent 52%),
+    repeating-linear-gradient(90deg, transparent 0 72px, rgb(96 108 56 / 8%) 72px 74px),
+    linear-gradient(180deg, rgb(232 220 199 / 88%), rgb(212 184 149 / 72%));
   box-shadow:
     inset 0 -42px 76px rgb(96 108 56 / 12%),
-    inset 0 1px 0 rgb(247 239 216 / 58%),
+    inset 0 1px 0 rgb(232 220 199 / 58%),
     0 24px 80px rgb(48 54 34 / 18%);
   backdrop-filter: blur(10px);
+  overflow: hidden;
+}
+
+.draw-stage::before {
+  position: absolute;
+  inset: 14px;
+  content: "";
+  border: 1px dashed rgb(96 108 56 / 22%);
+  border-radius: 22px;
+  pointer-events: none;
 }
 
 .stage-header {
+  position: relative;
+  z-index: 1;
   display: grid;
-  gap: 6px;
+  justify-items: center;
+  gap: 7px;
   color: var(--duanwu-moss);
   text-align: center;
 }
@@ -231,7 +244,12 @@ onMounted(animateEntrance)
   align-items: center;
   justify-content: center;
   gap: 6px;
-  font-size: 20px;
+  width: fit-content;
+  border: 1px solid rgb(96 108 56 / 20%);
+  border-radius: 999px;
+  padding: 7px 12px;
+  background: rgb(232 220 199 / 62%);
+  font-size: 18px;
   font-weight: 900;
 }
 
@@ -242,20 +260,25 @@ onMounted(animateEntrance)
 }
 
 .zongzi-grid {
+  position: relative;
+  z-index: 1;
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px 16px;
-  border-radius: 28px;
+  gap: 12px 14px;
+  border: 1px solid rgb(96 108 56 / 18%);
+  border-radius: 22px;
   padding: 16px;
   background:
-    repeating-linear-gradient(-7deg, transparent 0 34px, rgb(247 239 216 / 24%) 34px 38px, transparent 38px 68px),
-    linear-gradient(90deg, rgb(139 157 131 / 35%), rgb(96 108 56 / 22%), rgb(139 157 131 / 35%));
+    radial-gradient(ellipse at 50% 100%, rgb(48 54 34 / 12%), transparent 58%),
+    repeating-linear-gradient(-7deg, transparent 0 34px, rgb(232 220 199 / 24%) 34px 38px, transparent 38px 68px),
+    linear-gradient(90deg, rgb(139 157 131 / 36%), rgb(96 108 56 / 24%), rgb(139 157 131 / 36%));
   perspective: 760px;
 }
 
 .zongzi-pick {
   position: relative;
-  min-height: 112px;
+  min-height: 118px;
+  border-radius: 18px;
   border: 0;
   padding: 0;
   background: transparent;
@@ -662,7 +685,12 @@ onMounted(animateEntrance)
     max-height: calc(100svh - 92px);
     gap: 12px;
     padding: 16px;
-    border-radius: 26px;
+    border-radius: 24px;
+  }
+
+  .draw-stage::before {
+    inset: 9px;
+    border-radius: 18px;
   }
 
   .stage-header p {
@@ -676,7 +704,7 @@ onMounted(animateEntrance)
   .zongzi-grid {
     gap: 6px 8px;
     padding: 10px;
-    border-radius: 22px;
+    border-radius: 18px;
   }
 
   .zongzi-pick {

@@ -17,6 +17,7 @@
     "preview:chat": "pnpm --filter @dragon-boat/pan-chat preview"
   },
   "dependencies": {
+    "@fontsource/fraunces": "^5.2.9",
     "@fontsource/liu-jian-mao-cao": "^5.2.8",
     "@fontsource/ma-shan-zheng": "^5.2.9",
     "@fontsource/pacifico": "^5.2.7",

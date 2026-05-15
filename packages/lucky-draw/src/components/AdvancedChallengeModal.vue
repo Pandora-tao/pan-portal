@@ -38,7 +38,7 @@ const optionClass = (label: string) => ({
       </button>
 
       <header class="challenge-header">
-        <p class="modal-kicker">进阶挑战</p>
+        <p class="modal-kicker">游园加试</p>
         <div class="score-pill">
           <Trophy :size="15" />
           <span>{{ score }} 分</span>
@@ -102,10 +102,6 @@ const optionClass = (label: string) => ({
 </template>
 
 <style scoped>
-.challenge-modal {
-  position: relative;
-}
-
 .close-button {
   position: absolute;
   top: 14px;
@@ -117,13 +113,18 @@ const optionClass = (label: string) => ({
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   padding-right: 34px;
 }
 
 .modal-kicker {
+  width: fit-content;
   margin: 0;
+  border: 1px solid rgb(198 107 61 / 20%);
+  border-radius: 999px;
+  padding: 6px 10px;
   color: var(--duanwu-terracotta);
+  background: rgb(232 220 199 / 58%);
   font-size: 13px;
   font-weight: 900;
 }
@@ -132,43 +133,47 @@ const optionClass = (label: string) => ({
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  min-height: 30px;
+  min-height: 32px;
   border: 1px solid rgb(96 108 56 / 22%);
-  border-radius: 20px;
+  border-radius: 14px;
   padding: 0 11px;
   color: var(--duanwu-moss);
-  background: rgb(232 220 199 / 72%);
+  background:
+    repeating-linear-gradient(-8deg, transparent 0 16px, rgb(96 108 56 / 8%) 16px 18px),
+    rgb(232 220 199 / 72%);
   font-size: 13px;
   font-weight: 900;
 }
 
 h2 {
-  margin: 0 0 20px;
+  margin: 0 0 22px;
   color: var(--duanwu-ink);
-  font-size: 23px;
+  font-family: Fraunces, "Microsoft YaHei", serif;
+  font-size: 25px;
+  font-weight: 700;
   line-height: 1.35;
 }
 
 .choice-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .choice-option {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 52px;
+  min-height: 58px;
   border: 1px solid rgb(96 108 56 / 22%);
-  border-radius: 20px;
-  padding: 10px 12px;
+  border-radius: 16px;
+  padding: 11px 13px;
   color: var(--duanwu-ink);
   background:
-    radial-gradient(circle at 20% 15%, rgb(247 239 216 / 84%), transparent 32%),
-    linear-gradient(160deg, var(--duanwu-sand), rgb(139 157 131 / 28%));
+    radial-gradient(circle at 20% 15%, rgb(232 220 199 / 80%), transparent 32%),
+    linear-gradient(160deg, rgb(232 220 199 / 84%), rgb(139 157 131 / 24%));
   box-shadow:
-    inset 0 1px 0 rgb(247 239 216 / 48%),
+    inset 0 1px 0 rgb(232 220 199 / 48%),
     0 10px 24px rgb(48 54 34 / 8%);
   cursor: pointer;
   text-align: left;
@@ -191,12 +196,12 @@ h2 {
 
 .choice-option.correct {
   border-color: var(--duanwu-moss);
-  background: linear-gradient(160deg, var(--duanwu-sand), rgb(139 157 131 / 34%));
+  background: linear-gradient(160deg, rgb(232 220 199 / 88%), rgb(139 157 131 / 34%));
 }
 
 .choice-option.wrong {
   border-color: var(--duanwu-terracotta);
-  background: linear-gradient(160deg, var(--duanwu-sand), rgb(198 107 61 / 18%));
+  background: linear-gradient(160deg, rgb(232 220 199 / 88%), rgb(198 107 61 / 18%));
 }
 
 .choice-label {
@@ -205,9 +210,9 @@ h2 {
   place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: 11px;
   color: var(--duanwu-sand);
-  background: var(--duanwu-moss);
+  background: linear-gradient(135deg, var(--duanwu-moss), var(--duanwu-leaf));
   font-weight: 900;
 }
 
@@ -219,6 +224,7 @@ h2 {
   min-width: 0;
   font-size: 16px;
   font-weight: 800;
+  line-height: 1.35;
 }
 
 .answer-result {
@@ -227,10 +233,10 @@ h2 {
   gap: 8px;
   margin-top: 14px;
   border: 1px solid rgb(198 107 61 / 20%);
-  border-radius: 18px;
-  padding: 11px 12px;
+  border-radius: 16px;
+  padding: 12px 13px;
   color: #7b412e;
-  background: rgb(232 220 199 / 74%);
+  background: rgb(232 220 199 / 72%);
   font-size: 14px;
   font-weight: 800;
   line-height: 1.45;
@@ -246,7 +252,7 @@ h2 {
   display: grid;
   justify-items: center;
   gap: 10px;
-  padding: 20px 0 8px;
+  padding: 22px 0 8px;
   color: var(--duanwu-moss);
   text-align: center;
 }
@@ -267,6 +273,8 @@ h2 {
   justify-content: space-between;
   gap: 12px;
   margin-top: 22px;
+  border-top: 1px dashed rgb(96 108 56 / 24%);
+  padding-top: 16px;
   color: rgb(48 54 34 / 68%);
   font-size: 13px;
   font-weight: 800;

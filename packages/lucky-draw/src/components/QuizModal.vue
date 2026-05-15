@@ -53,7 +53,7 @@ const selectOption = (value: string) => {
       <button class="icon-button close-button" type="button" aria-label="关闭" @click="$emit('close')">
         <X :size="18" />
       </button>
-      <p class="modal-kicker">入场问题</p>
+      <p class="modal-kicker">游园入场题</p>
       <h2>{{ quiz.question }}</h2>
 
       <div class="choice-grid" role="radiogroup" :aria-label="quiz.question">
@@ -78,10 +78,6 @@ const selectOption = (value: string) => {
 </template>
 
 <style scoped>
-.modal {
-  position: relative;
-}
-
 .close-button {
   position: absolute;
   top: 14px;
@@ -89,40 +85,48 @@ const selectOption = (value: string) => {
 }
 
 .modal-kicker {
-  margin: 0 0 10px;
+  width: fit-content;
+  margin: 0 0 12px;
+  border: 1px solid rgb(198 107 61 / 20%);
+  border-radius: 999px;
+  padding: 6px 10px;
   color: var(--duanwu-terracotta);
+  background: rgb(232 220 199 / 58%);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .modal h2 {
-  margin: 0 0 22px;
+  margin: 0 0 24px;
   padding-right: 26px;
   color: var(--duanwu-ink);
-  font-size: 24px;
+  font-family: Fraunces, "Microsoft YaHei", serif;
+  font-size: 26px;
+  font-weight: 700;
   line-height: 1.35;
 }
 
 .choice-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .choice-option {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 52px;
+  min-height: 58px;
   border: 1px solid rgb(96 108 56 / 22%);
-  border-radius: 20px;
-  padding: 10px 12px;
+  border-radius: 16px;
+  padding: 11px 13px;
   color: var(--duanwu-ink);
   background:
-    radial-gradient(circle at 20% 15%, rgb(247 239 216 / 84%), transparent 32%),
-    linear-gradient(160deg, var(--duanwu-sand), rgb(139 157 131 / 28%));
+    radial-gradient(circle at 20% 15%, rgb(232 220 199 / 80%), transparent 32%),
+    linear-gradient(160deg, rgb(232 220 199 / 84%), rgb(139 157 131 / 24%));
   box-shadow:
-    inset 0 1px 0 rgb(247 239 216 / 48%),
+    inset 0 1px 0 rgb(232 220 199 / 48%),
     0 10px 24px rgb(48 54 34 / 8%);
   cursor: pointer;
   text-align: left;
@@ -137,8 +141,8 @@ const selectOption = (value: string) => {
 .choice-option.selected {
   border-color: var(--duanwu-moss);
   background:
-    radial-gradient(circle at 20% 15%, rgb(247 239 216 / 90%), transparent 32%),
-    linear-gradient(160deg, var(--duanwu-sand), rgb(192 142 58 / 18%));
+    radial-gradient(circle at 20% 15%, rgb(232 220 199 / 90%), transparent 32%),
+    linear-gradient(160deg, rgb(232 220 199 / 90%), rgb(192 142 58 / 20%));
   box-shadow: 0 14px 30px rgb(48 54 34 / 14%);
   transform: translateY(-2px);
 }
@@ -149,9 +153,9 @@ const selectOption = (value: string) => {
   place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: 999px;
+  border-radius: 11px;
   color: var(--duanwu-sand);
-  background: var(--duanwu-moss);
+  background: linear-gradient(135deg, var(--duanwu-moss), var(--duanwu-leaf));
   font-weight: 900;
 }
 
@@ -159,6 +163,7 @@ const selectOption = (value: string) => {
   min-width: 0;
   font-size: 16px;
   font-weight: 800;
+  line-height: 1.35;
 }
 
 .form-error {

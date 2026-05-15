@@ -215,6 +215,12 @@ const returnHomeAfterWrongAnswer = () => {
       :title="title"
       :action-label="primaryActionLabel"
       :action-disabled="drawState.friendshipSunk || (!canDraw && !hasAvailableAdvancedQuestions)"
+      :chances="drawState.chances"
+      :basic-failed-count="drawState.basicFailedQuestionIds.length"
+      :basic-total-count="basicQuizzes.length"
+      :advanced-answered-count="drawState.advancedAnsweredQuestionIds.length"
+      :advanced-total-count="advancedQuizzes.length"
+      :advanced-score="drawState.advancedScore"
       @start="startEntry"
     />
 
@@ -270,9 +276,10 @@ const returnHomeAfterWrongAnswer = () => {
   display: grid;
   align-content: center;
   gap: 24px;
-  padding: 32px;
+  padding: 32px 20px;
   background:
-    linear-gradient(180deg, rgb(232 220 199 / 48%), rgb(212 184 149 / 22%)),
+    radial-gradient(circle at 50% 18%, rgb(192 142 58 / 18%), transparent 34%),
+    linear-gradient(180deg, rgb(232 220 199 / 40%), rgb(212 184 149 / 18%)),
     url("./assets/duanwu-riverbank.png") center / cover,
     linear-gradient(145deg, var(--duanwu-sand) 0%, var(--duanwu-oat) 100%);
 }
@@ -282,15 +289,18 @@ const returnHomeAfterWrongAnswer = () => {
   inset: 0;
   content: "";
   pointer-events: none;
-  opacity: 0.22;
+  opacity: 0.2;
   background-image:
-    radial-gradient(circle, rgb(48 54 34 / 18%) 0 1px, transparent 1px),
-    radial-gradient(circle, rgb(247 239 216 / 34%) 0 1px, transparent 1px);
+    linear-gradient(90deg, rgb(96 108 56 / 10%) 1px, transparent 1px),
+    linear-gradient(180deg, rgb(96 108 56 / 8%) 1px, transparent 1px),
+    radial-gradient(circle, rgb(48 54 34 / 14%) 0 1px, transparent 1px);
   background-position:
+    0 0,
     0 0,
     8px 10px;
   background-size:
-    18px 18px,
+    86px 86px,
+    86px 86px,
     22px 22px;
   mix-blend-mode: multiply;
 }
@@ -299,7 +309,7 @@ const returnHomeAfterWrongAnswer = () => {
   position: fixed;
   z-index: 12;
   top: calc(18px + env(safe-area-inset-top));
-  left: 50%;
+  left: calc(18px + env(safe-area-inset-left));
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -314,7 +324,7 @@ const returnHomeAfterWrongAnswer = () => {
     0 14px 34px rgb(48 54 34 / 16%);
   text-decoration: none;
   backdrop-filter: blur(12px);
-  transform: translateX(-50%);
+  transform: rotate(-4deg);
   transition:
     transform 0.2s ease,
     box-shadow 0.2s ease,
@@ -326,7 +336,7 @@ const returnHomeAfterWrongAnswer = () => {
   box-shadow:
     inset 0 1px 0 rgb(247 239 216 / 64%),
     0 18px 40px rgb(48 54 34 / 20%);
-  transform: translateX(-50%) translateY(-2px);
+  transform: rotate(-4deg) translateY(-2px);
 }
 
 .friendship-backdrop {
@@ -366,7 +376,7 @@ const returnHomeAfterWrongAnswer = () => {
     height: 100svh;
     min-height: 100svh;
     align-content: center;
-    padding: 88px 18px 22px;
+    padding: 74px 16px 18px;
   }
 
   .festival-page.is-drawing {
@@ -375,6 +385,7 @@ const returnHomeAfterWrongAnswer = () => {
 
   .portal-link {
     top: calc(12px + env(safe-area-inset-top));
+    left: calc(12px + env(safe-area-inset-left));
     width: 36px;
     height: 36px;
   }

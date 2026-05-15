@@ -1,6 +1,6 @@
 :root {
   font-family:
-    "Microsoft YaHei", "PingFang SC", Epilogue, ui-sans-serif, system-ui, -apple-system,
+    "Microsoft YaHei", "PingFang SC", ui-sans-serif, system-ui, -apple-system,
     BlinkMacSystemFont, "Segoe UI", sans-serif;
   color: #303622;
   background: #e8dcc7;
@@ -14,6 +14,8 @@
   --duanwu-ink: #303622;
   --duanwu-leaf: #4f6634;
   --duanwu-rice: #e8dcc7;
+  --duanwu-deep: #384429;
+  --duanwu-ticket: #dbc59d;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -91,7 +93,7 @@ p {
 .primary-action,
 .secondary-action {
   min-height: 46px;
-  border-radius: 24px;
+  border-radius: 18px;
   padding: 0 24px;
   font-weight: 800;
 }
@@ -99,11 +101,11 @@ p {
 .primary-action {
   color: var(--duanwu-sand);
   background:
-    radial-gradient(circle at 24% 18%, rgb(247 239 216 / 24%), transparent 28%),
+    radial-gradient(circle at 22% 14%, rgb(232 220 199 / 28%), transparent 28%),
     linear-gradient(135deg, var(--duanwu-terracotta), var(--duanwu-ochre));
   box-shadow:
-    inset 0 -3px 0 rgb(48 54 34 / 14%),
-    0 14px 30px rgb(96 108 56 / 24%);
+    inset 0 -3px 0 rgb(48 54 34 / 16%),
+    0 16px 34px rgb(96 108 56 / 24%);
 }
 
 .primary-action.small,
@@ -114,7 +116,9 @@ p {
 
 .secondary-action {
   color: var(--duanwu-moss);
-  background: rgb(232 220 199 / 86%);
+  background:
+    repeating-linear-gradient(-8deg, transparent 0 18px, rgb(96 108 56 / 8%) 18px 20px),
+    rgb(232 220 199 / 82%);
   border: 1px solid rgb(96 108 56 / 24%);
 }
 
@@ -154,22 +158,44 @@ p {
   place-items: center;
   padding: 20px;
   background:
-    radial-gradient(circle at 50% 42%, rgb(232 220 199 / 18%), transparent 32%),
-    rgb(48 54 34 / 54%);
+    radial-gradient(circle at 50% 38%, rgb(192 142 58 / 18%), transparent 30%),
+    rgb(48 54 34 / 58%);
   backdrop-filter: blur(7px);
 }
 
 .modal {
-  width: min(100%, 430px);
-  padding: 28px;
+  position: relative;
+  width: min(100%, 460px);
+  padding: 30px;
   border: 1px solid rgb(96 108 56 / 22%);
-  border-radius: 24px;
+  border-radius: 22px;
   background:
-    radial-gradient(circle at 18% 0%, rgb(247 239 216 / 78%), transparent 36%),
+    radial-gradient(circle at 18% 0%, rgb(232 220 199 / 78%), transparent 34%),
+    repeating-linear-gradient(-7deg, transparent 0 30px, rgb(96 108 56 / 8%) 30px 32px),
     linear-gradient(180deg, #e8dcc7, #d4b895);
   box-shadow:
-    inset 0 1px 0 rgb(247 239 216 / 54%),
+    inset 0 1px 0 rgb(232 220 199 / 54%),
     0 28px 86px rgb(48 54 34 / 28%);
+}
+
+.modal::before,
+.modal::after {
+  position: absolute;
+  top: 50%;
+  width: 18px;
+  height: 18px;
+  content: "";
+  border-radius: 999px;
+  background: rgb(48 54 34 / 48%);
+  transform: translateY(-50%);
+}
+
+.modal::before {
+  left: -10px;
+}
+
+.modal::after {
+  right: -10px;
 }
 
 @media (max-width: 420px) {

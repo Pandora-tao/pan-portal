@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { nextTick, onBeforeUnmount, onMounted, reactive, ref, type ComponentPublicInstance } from 'vue'
 import * as Matter from 'matter-js'
 import { Sparkles } from 'lucide-vue-next'
 import avatarUrl from './assets/pan-avatar.png'
-import luluUrl from './assets/lulu-cutout.png'
-import puddingUrl from './assets/pudding-dog.png'
-import appleUrl from './assets/apple-smile.svg'
-import bananaUrl from './assets/banana-smile.svg'
-import watermelonUrl from './assets/watermelon-smile.svg'
-import strawberryUrl from './assets/strawberry-smile.svg'
 import luckyDrawIconUrl from './assets/duanwu-lucky-gift-3d.png'
-
+import DraggableDecoration from './draggable-decorations/DraggableDecoration.vue'
+import {
+  createDecorationStyles,
+  draggableDecorations,
+  type DecorKey,
+  type DraggableDecorationDefinition,
+} from './draggable-decorations'
 
 interface PortalApp {
   id: string
@@ -18,10 +18,6 @@ interface PortalApp {
   href: string
   image: string
 }
-
-type DecorKey = 'lulu' | 'grape' | 'pudding' | 'watermelon' | 'banana' | 'apple' | 'strawberry'
-
-const decorKeys: DecorKey[] = ['lulu', 'grape', 'pudding', 'watermelon', 'banana', 'apple', 'strawberry']
 
 const luckyDrawRoute = import.meta.env.VITE_LUCKY_DRAW_ROUTE ?? '/lucky-draw/'
 const chatRoute = import.meta.env.VITE_CHAT_ROUTE ?? '/chat/'
@@ -35,27 +31,13 @@ const apps: PortalApp[] = [
   },
 ]
 
-const activeDecoration = ref('')
+const activeDecoration = ref<DecorKey | ''>('')
+const activeBubble = ref<DecorKey | ''>('')
 const isGiftIntroOpen = ref(true)
 const portalShell = ref<HTMLElement | null>(null)
 const decorLayer = ref<HTMLElement | null>(null)
-const luluDecor = ref<HTMLElement | null>(null)
-const grapeDecor = ref<HTMLElement | null>(null)
-const puddingDecor = ref<HTMLElement | null>(null)
-const watermelonDecor = ref<HTMLElement | null>(null)
-const bananaDecor = ref<HTMLElement | null>(null)
-const appleDecor = ref<HTMLElement | null>(null)
-const strawberryDecor = ref<HTMLElement | null>(null)
-
-const decorStyles = reactive<Record<DecorKey, Record<string, string>>>({
-  lulu: {},
-  grape: {},
-  pudding: {},
-  watermelon: {},
-  banana: {},
-  apple: {},
-  strawberry: {},
-})
+const decorElementRefs = new Map<DecorKey, HTMLElement>()
+const decorStyles = reactive(createDecorationStyles())
 
 const decorBodies = new Map<DecorKey, Matter.Body>()
 let decorationTimer: number | undefined
@@ -64,6 +46,33 @@ let engine: Matter.Engine | undefined
 let runner: Matter.Runner | undefined
 let resizeObserver: ResizeObserver | undefined
 let rebuildTimer: number | undefined
+
+function setDecorElementRef(key: DecorKey, element: Element | ComponentPublicInstance | null) {
+  if (element instanceof HTMLElement) {
+    decorElementRefs.set(key, element)
+    return
+  }
+
+  decorElementRefs.delete(key)
+}
+
+function showDecorationBubble(id: DecorKey, event?: PointerEvent) {
+  activeBubble.value = id
+
+  if (event?.currentTarget instanceof HTMLElement) {
+    event.currentTarget.setPointerCapture(event.pointerId)
+  }
+}
+
+function hideDecorationBubble(id?: DecorKey) {
+  if (!id || activeBubble.value === id) {
+    activeBubble.value = ''
+  }
+}
+
+function handleWindowPointerEnd() {
+  hideDecorationBubble()
+}
 
 function popDecoration(id: DecorKey) {
   activeDecoration.value = id
@@ -114,7 +123,7 @@ function createBounds(width: number, height: number) {
 }
 
 function createDecorBody(
-  key: DecorKey,
+  decoration: DraggableDecorationDefinition,
   element: HTMLElement,
   width: number,
   height: number,
@@ -122,59 +131,34 @@ function createDecorBody(
 ) {
   const elementWidth = element.offsetWidth
   const elementHeight = element.offsetHeight
-  const isRound = key === 'grape' || key === 'apple'
-  const xPositions = {
-    lulu: width * 0.84,
-    grape: width * 0.74,
-    pudding: width * 0.6,
-    watermelon: width * 0.26,
-    banana: width * 0.42,
-    apple: width * 0.88,
-    strawberry: width * 0.5,
-  }
-  const yPositions = {
-    lulu: height * 0.72,
-    grape: height * 0.18,
-    pudding: height * 0.78,
-    watermelon: height * 0.68,
-    banana: height * 0.25,
-    apple: height * 0.42,
-    strawberry: height * 0.5,
-  }
-  const bodyScales = {
-    lulu: { width: 0.62, height: 0.72 },
-    grape: { width: 0.84, height: 0.84 },
-    pudding: { width: 0.74, height: 0.68 },
-    watermelon: { width: 0.74, height: 0.62 },
-    banana: { width: 0.86, height: 0.44 },
-    apple: { width: 0.78, height: 0.78 },
-    strawberry: { width: 0.5, height: 0.5 },
-  }
+  const x = width * decoration.start.x
+  const y = height * decoration.start.y
 
-  const body = isRound
-    ? Matter.Bodies.circle(xPositions[key], yPositions[key], Math.max(elementWidth, elementHeight) * 0.42, {
-        restitution: 0.96,
-        friction: 0,
-        frictionAir: 0.008,
-      })
-    : Matter.Bodies.rectangle(
-        xPositions[key],
-        yPositions[key],
-        elementWidth * bodyScales[key].width,
-        elementHeight * bodyScales[key].height,
-        {
+  const body =
+    decoration.body.shape === 'circle'
+      ? Matter.Bodies.circle(x, y, Math.max(elementWidth, elementHeight) * decoration.body.radiusScale, {
           restitution: 0.96,
           friction: 0,
           frictionAir: 0.008,
-        },
-      )
+        })
+      : Matter.Bodies.rectangle(
+          x,
+          y,
+          elementWidth * decoration.body.widthScale,
+          elementHeight * decoration.body.heightScale,
+          {
+            restitution: 0.96,
+            friction: 0,
+            frictionAir: 0.008,
+          },
+        )
 
   Matter.Body.setVelocity(body, {
     x: index % 2 === 0 ? 1.1 : -1,
     y: index === 1 ? 0.8 : -0.7,
   })
   Matter.Body.setAngularVelocity(body, index % 2 === 0 ? 0.01 : -0.012)
-  decorBodies.set(key, body)
+  decorBodies.set(decoration.id, body)
   return body
 }
 
@@ -182,15 +166,10 @@ async function setupPhysics() {
   await nextTick()
   const shell = portalShell.value
   const physicsLayer = decorLayer.value
-  const decorElements: Array<[DecorKey, HTMLElement | null]> = [
-    ['lulu', luluDecor.value],
-    ['grape', grapeDecor.value],
-    ['pudding', puddingDecor.value],
-    ['watermelon', watermelonDecor.value],
-    ['banana', bananaDecor.value],
-    ['apple', appleDecor.value],
-    ['strawberry', strawberryDecor.value],
-  ]
+  const decorElements = draggableDecorations.map((decoration) => [
+    decoration,
+    decorElementRefs.get(decoration.id) ?? null,
+  ] as const)
 
   if (!shell || !physicsLayer || decorElements.some(([, element]) => !element)) {
     return
@@ -203,8 +182,8 @@ async function setupPhysics() {
   engine = Matter.Engine.create({ gravity: { x: 0, y: 0 } })
   runner = Matter.Runner.create()
 
-  const bodies = decorElements.map(([key, element], index) =>
-    createDecorBody(key, element as HTMLElement, width, height, index),
+  const bodies = decorElements.map(([decoration, element], index) =>
+    createDecorBody(decoration, element as HTMLElement, width, height, index),
   )
 
   const mouse = Matter.Mouse.create(physicsLayer)
@@ -238,10 +217,10 @@ async function setupPhysics() {
   })
 
   Matter.Events.on(engine, 'afterUpdate', () => {
-    decorElements.forEach(([key, element]) => {
-      const body = decorBodies.get(key)
+    decorElements.forEach(([decoration, element]) => {
+      const body = decorBodies.get(decoration.id)
       if (body && element) {
-        syncDecorStyle(key, body, element)
+        syncDecorStyle(decoration.id, body, element)
       }
     })
   })
@@ -251,6 +230,8 @@ async function setupPhysics() {
 
 onMounted(() => {
   setupPhysics()
+  window.addEventListener('pointerup', handleWindowPointerEnd)
+  window.addEventListener('pointercancel', handleWindowPointerEnd)
   giftIntroTimer = window.setTimeout(() => {
     isGiftIntroOpen.value = false
   }, 2400)
@@ -268,7 +249,10 @@ onBeforeUnmount(() => {
   window.clearTimeout(decorationTimer)
   window.clearTimeout(giftIntroTimer)
   window.clearTimeout(rebuildTimer)
+  window.removeEventListener('pointerup', handleWindowPointerEnd)
+  window.removeEventListener('pointercancel', handleWindowPointerEnd)
   resizeObserver?.disconnect()
+  hideDecorationBubble()
   cleanupPhysics()
 })
 </script>
@@ -295,99 +279,32 @@ onBeforeUnmount(() => {
 
       <div ref="decorLayer" class="decor-layer">
         <button
-          ref="luluDecor"
+          v-for="decoration in draggableDecorations"
+          :key="decoration.id"
+          :ref="(element) => setDecorElementRef(decoration.id, element)"
           type="button"
-          class="decor decor-lulu"
-          :class="{ 'is-active': activeDecoration === 'lulu' }"
-          :style="decorStyles.lulu"
-          aria-label="噜噜"
-          @click="popDecoration('lulu')"
+          class="decor"
+          :class="[
+            decoration.className,
+            {
+              'is-active': activeDecoration === decoration.id,
+              'has-bubble': activeBubble === decoration.id && decoration.introText,
+            },
+          ]"
+          :style="decorStyles[decoration.id]"
+          :aria-label="decoration.ariaLabel"
+          @click="popDecoration(decoration.id)"
+          @pointerdown="showDecorationBubble(decoration.id, $event)"
+          @pointerup="hideDecorationBubble(decoration.id)"
+          @pointercancel="hideDecorationBubble(decoration.id)"
+          @focus="showDecorationBubble(decoration.id)"
+          @blur="hideDecorationBubble(decoration.id)"
+          @contextmenu.prevent
         >
-          <img :src="luluUrl" alt="" />
-          <span class="decor-pop"></span>
-        </button>
-
-        <button
-          ref="grapeDecor"
-          type="button"
-          class="decor decor-grape"
-          :class="{ 'is-active': activeDecoration === 'grape' }"
-          :style="decorStyles.grape"
-          aria-label="葡萄"
-          @click="popDecoration('grape')"
-        >
-          <span class="grape-leaf"></span>
-          <span class="grape-dot dot-one"></span>
-          <span class="grape-dot dot-two"></span>
-          <span class="grape-dot dot-three"></span>
-          <span class="grape-dot dot-four"></span>
-          <span class="grape-dot dot-five"></span>
-          <span class="grape-dot dot-six"></span>
-          <span class="decor-pop"></span>
-        </button>
-
-        <button
-          ref="puddingDecor"
-          type="button"
-          class="decor decor-pudding"
-          :class="{ 'is-active': activeDecoration === 'pudding' }"
-          :style="decorStyles.pudding"
-          aria-label="布丁小狗"
-          @click="popDecoration('pudding')"
-        >
-          <img :src="puddingUrl" alt="" />
-          <span class="decor-pop"></span>
-        </button>
-
-        <button
-          ref="watermelonDecor"
-          type="button"
-          class="decor decor-watermelon"
-          :class="{ 'is-active': activeDecoration === 'watermelon' }"
-          :style="decorStyles.watermelon"
-          aria-label="西瓜"
-          @click="popDecoration('watermelon')"
-        >
-          <img :src="watermelonUrl" alt="" />
-          <span class="decor-pop"></span>
-        </button>
-
-        <button
-          ref="strawberryDecor"
-          type="button"
-          class="decor decor-strawberry"
-          :class="{ 'is-active': activeDecoration === 'strawberry' }"
-          :style="decorStyles.strawberry"
-          aria-label="草莓"
-          @click="popDecoration('strawberry')"
-        >
-          <img :src="strawberryUrl" alt="" />
-          <span class="decor-pop"></span>
-        </button>
-
-        <button
-          ref="bananaDecor"
-          type="button"
-          class="decor decor-banana"
-          :class="{ 'is-active': activeDecoration === 'banana' }"
-          :style="decorStyles.banana"
-          aria-label="香蕉"
-          @click="popDecoration('banana')"
-        >
-          <img :src="bananaUrl" alt="" />
-          <span class="decor-pop"></span>
-        </button>
-
-        <button
-          ref="appleDecor"
-          type="button"
-          class="decor decor-apple"
-          :class="{ 'is-active': activeDecoration === 'apple' }"
-          :style="decorStyles.apple"
-          aria-label="苹果"
-          @click="popDecoration('apple')"
-        >
-          <img :src="appleUrl" alt="" />
+          <DraggableDecoration :decoration="decoration" />
+          <span v-if="decoration.introText" class="decor-bubble" aria-hidden="true">
+            {{ decoration.introText }}
+          </span>
           <span class="decor-pop"></span>
         </button>
       </div>

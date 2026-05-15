@@ -502,10 +502,19 @@ a {
   pointer-events: auto;
   touch-action: none;
   user-select: none;
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
   will-change: transform;
   transition:
     filter 180ms ease,
     scale 180ms ease;
+}
+
+.decor *,
+.decor img {
+  -webkit-touch-callout: none;
+  -webkit-user-drag: none;
+  user-select: none;
 }
 
 .decor:hover,
@@ -529,6 +538,56 @@ a {
   transform: translate(-50%, -50%) scale(0.2);
 }
 
+.decor-bubble {
+  position: absolute;
+  left: 50%;
+  top: -10px;
+  z-index: 3;
+  min-width: max-content;
+  max-width: 128px;
+  padding: 7px 11px 8px;
+  border: 1px solid var(--ink);
+  background: var(--paper-deep);
+  box-shadow:
+    3px 3px 0 rgb(58 42 40 / 78%),
+    -2px 2px 0 var(--sweet-pink),
+    2px -2px 0 var(--sweet-cyan);
+  color: var(--ink);
+  font-family: Helvetica, Arial, "Microsoft YaHei", "PingFang SC", sans-serif;
+  font-size: 0.92rem;
+  font-weight: 900;
+  line-height: 1;
+  opacity: 0;
+  pointer-events: none;
+  text-align: center;
+  transform: translate(-50%, -100%) rotate(-3deg) scale(0.88);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease,
+    visibility 160ms ease;
+  visibility: hidden;
+  white-space: nowrap;
+}
+
+.decor-bubble::after {
+  position: absolute;
+  left: 50%;
+  bottom: -7px;
+  width: 12px;
+  height: 12px;
+  border-right: 1px solid var(--ink);
+  border-bottom: 1px solid var(--ink);
+  background: var(--paper-deep);
+  content: "";
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.decor.has-bubble .decor-bubble {
+  opacity: 1;
+  transform: translate(-50%, -100%) rotate(-2deg) scale(1);
+  visibility: visible;
+}
+
 .decor.is-active {
   scale: 1.07;
 }
@@ -538,24 +597,22 @@ a {
 }
 
 .decor-lulu {
-  width: 150px;
-  height: 198px;
+  width: 118px;
+  height: 158px;
 }
 
-.decor-lulu img,
-.decor-pudding img,
-.decor-watermelon img,
-.decor-banana img,
-.decor-apple img,
-.decor-strawberry img {
+.decor img {
   width: 100%;
   height: 100%;
   object-fit: contain;
+  filter:
+    drop-shadow(5px 7px 0 rgb(58 42 40 / 14%))
+    drop-shadow(2px 0 0 rgb(255 138 179 / 22%))
+    drop-shadow(-2px 0 0 rgb(117 232 216 / 22%));
   transition: transform 180ms ease;
 }
 
 .decor-lulu img {
-  filter: drop-shadow(5px 7px 0 rgb(58 42 40 / 14%));
   transform: rotate(-2deg);
 }
 
@@ -564,85 +621,14 @@ a {
   transform: translateY(-6px) rotate(2deg);
 }
 
-.decor-grape {
-  width: 90px;
-  height: 96px;
-}
-
-.grape-leaf {
-  position: absolute;
-  top: 8px;
-  left: 35px;
-  width: 28px;
-  height: 14px;
-  border: 1px solid var(--ink);
-  border-radius: 999px 4px 999px 4px;
-  background: var(--sweet-cyan);
-  transform: rotate(-25deg);
-}
-
-.grape-dot {
-  position: absolute;
-  width: 26px;
-  height: 26px;
-  border: 1px solid var(--ink);
-  border-radius: 999px;
-  background:
-    radial-gradient(circle at 32% 28%, rgb(255 255 255 / 44%), transparent 24%),
-    #ff9aca;
-  box-shadow: 2px 2px 0 rgb(58 42 40 / 76%);
-  transition: transform 180ms ease;
-}
-
-.dot-one {
-  top: 23px;
-  left: 18px;
-}
-
-.dot-two {
-  top: 23px;
-  left: 44px;
-}
-
-.dot-three {
-  top: 46px;
-  left: 9px;
-}
-
-.dot-four {
-  top: 46px;
-  left: 35px;
-}
-
-.dot-five {
-  top: 46px;
-  left: 61px;
-}
-
-.dot-six {
-  top: 69px;
-  left: 32px;
-}
-
-.decor-grape:hover .grape-dot,
-.decor-grape.is-active .grape-dot {
-  transform: translateY(-3px);
+.decor-grapes {
+  width: 104px;
+  height: 122px;
 }
 
 .decor-pudding {
-  width: 146px;
-  height: 146px;
-}
-
-.decor-pudding img,
-.decor-watermelon img,
-.decor-banana img,
-.decor-apple img,
-.decor-strawberry img {
-  filter:
-    drop-shadow(5px 7px 0 rgb(58 42 40 / 14%))
-    drop-shadow(2px 0 0 rgb(255 138 179 / 22%))
-    drop-shadow(-2px 0 0 rgb(117 232 216 / 22%));
+  width: 118px;
+  height: 118px;
 }
 
 .decor-pudding:hover img,
@@ -650,34 +636,43 @@ a {
   transform: translateY(-5px) rotate(-2deg);
 }
 
-.decor-watermelon {
-  width: 112px;
+.decor-crab {
+  width: 142px;
   height: 112px;
 }
 
-.decor-banana {
-  width: 132px;
-  height: 132px;
+.decor-headphones {
+  width: 120px;
+  height: 120px;
 }
 
-.decor-apple {
-  width: 108px;
-  height: 108px;
+.decor-race-car {
+  width: 148px;
+  height: 112px;
 }
 
-.decor-strawberry {
-  width: 94px;
-  height: 94px;
+.decor-hollow-knight {
+  width: 116px;
+  height: 146px;
 }
 
-.decor-watermelon:hover img,
-.decor-watermelon.is-active img,
-.decor-banana:hover img,
-.decor-banana.is-active img,
-.decor-apple:hover img,
-.decor-apple.is-active img,
-.decor-strawberry:hover img,
-.decor-strawberry.is-active img {
+.decor-dva-mech {
+  width: 150px;
+  height: 126px;
+}
+
+.decor-grapes:hover img,
+.decor-grapes.is-active img,
+.decor-crab:hover img,
+.decor-crab.is-active img,
+.decor-headphones:hover img,
+.decor-headphones.is-active img,
+.decor-race-car:hover img,
+.decor-race-car.is-active img,
+.decor-hollow-knight:hover img,
+.decor-hollow-knight.is-active img,
+.decor-dva-mech:hover img,
+.decor-dva-mech.is-active img {
   transform: translateY(-5px) rotate(2deg);
 }
 
@@ -854,79 +849,42 @@ a {
   }
 
   .decor-lulu {
-    width: 92px;
-    height: 122px;
+    width: 76px;
+    height: 102px;
   }
 
-  .decor-grape {
+  .decor-grapes {
     width: 72px;
-    height: 78px;
-  }
-
-  .grape-leaf {
-    top: 6px;
-    left: 28px;
-    width: 23px;
-    height: 12px;
-  }
-
-  .grape-dot {
-    width: 21px;
-    height: 21px;
-  }
-
-  .dot-one {
-    top: 19px;
-    left: 14px;
-  }
-
-  .dot-two {
-    top: 19px;
-    left: 35px;
-  }
-
-  .dot-three {
-    top: 37px;
-    left: 7px;
-  }
-
-  .dot-four {
-    top: 37px;
-    left: 28px;
-  }
-
-  .dot-five {
-    top: 37px;
-    left: 49px;
-  }
-
-  .dot-six {
-    top: 56px;
-    left: 26px;
+    height: 84px;
   }
 
   .decor-pudding {
+    width: 82px;
+    height: 82px;
+  }
+
+  .decor-crab {
+    width: 104px;
+    height: 82px;
+  }
+
+  .decor-headphones {
+    width: 82px;
+    height: 82px;
+  }
+
+  .decor-race-car {
+    width: 104px;
+    height: 78px;
+  }
+
+  .decor-hollow-knight {
+    width: 78px;
+    height: 98px;
+  }
+
+  .decor-dva-mech {
     width: 106px;
-    height: 106px;
-  }
-
-  .decor-watermelon {
-    width: 82px;
-    height: 82px;
-  }
-
-  .decor-banana {
-    width: 96px;
-    height: 96px;
-  }
-
-  .decor-apple {
-    width: 82px;
-    height: 82px;
-  }
-
-  .decor-strawberry {
-    width: 74px;
-    height: 74px;
+    height: 90px;
   }
 }

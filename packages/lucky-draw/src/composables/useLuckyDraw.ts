@@ -1,33 +1,7 @@
 import { computed } from 'vue'
 import { useStorage } from '@vueuse/core'
 import { basicQuizzes, prizePool, type RedPacketPrize } from '../data/activity'
-
-const STORAGE_KEY = 'taopan-dragon-boat-lucky-draw-v3'
-
-interface DrawRecord {
-  prize: string
-  time: string
-}
-
-interface DrawState {
-  chances: number
-  draws: DrawRecord[]
-  bonusClaimed: boolean
-  basicFailedQuestionIds: string[]
-  friendshipSunk: boolean
-  advancedAnsweredQuestionIds: string[]
-  advancedScore: number
-}
-
-const defaultDrawState: DrawState = {
-  chances: 1,
-  draws: [],
-  bonusClaimed: false,
-  basicFailedQuestionIds: [],
-  friendshipSunk: false,
-  advancedAnsweredQuestionIds: [],
-  advancedScore: 0,
-}
+import { createDefaultDrawState, STORAGE_KEY, type DrawState } from './drawState'
 
 const createRedPacketPrize = (prize: RedPacketPrize) => {
   const amount = Math.floor(Math.random() * (prize.max - prize.min + 1)) + prize.min
@@ -49,7 +23,7 @@ const pickRandomPrize = () => {
 }
 
 export const useLuckyDraw = () => {
-  const state = useStorage<DrawState>(STORAGE_KEY, defaultDrawState, localStorage, {
+  const state = useStorage<DrawState>(STORAGE_KEY, createDefaultDrawState(), localStorage, {
     mergeDefaults: true,
   })
 
@@ -110,6 +84,10 @@ export const useLuckyDraw = () => {
     return true
   }
 
+  const resetDrawState = () => {
+    state.value = createDefaultDrawState()
+  }
+
   return {
     state,
     canDraw,
@@ -119,5 +97,6 @@ export const useLuckyDraw = () => {
     claimBonusChance,
     recordBasicFailure,
     recordAdvancedAnswer,
+    resetDrawState,
   }
 }

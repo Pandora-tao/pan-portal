@@ -84,7 +84,7 @@ async function createPersonaReply(messages) {
   const model = process.env.LLM_MODEL ?? 'gpt-4o-mini'
 
   if (!apiKey) {
-    throw new Error('Missing LLM_API_KEY or OPENAI_API_KEY')
+    return createLocalDemoReply(messages)
   }
 
   const profile = await readProfile()
@@ -126,6 +126,21 @@ async function createPersonaReply(messages) {
   }
 
   return content.trim()
+}
+
+function createLocalDemoReply(messages) {
+  const latestUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content
+  const quotedMessage = latestUserMessage ? `你刚刚说「${truncateForReply(latestUserMessage)}」，我收到啦。` : '我收到你的消息啦。'
+
+  return [
+    '我现在是本地演示模式，没有连上大模型，所以先用简短版陪你聊。',
+    quotedMessage,
+    '你可以继续试试聊天流程；等接上模型后，我会按资料更自然地回复。',
+  ].join('\n')
+}
+
+function truncateForReply(value) {
+  return value.length > 48 ? `${value.slice(0, 48)}...` : value
 }
 
 async function readProfile() {

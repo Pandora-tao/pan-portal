@@ -56,8 +56,6 @@ onMounted(() => {
 
 <template>
   <div ref="sceneRef" class="wrong-scene" role="status" aria-live="polite">
-    <span class="cloud cloud-left" aria-hidden="true"></span>
-    <span class="cloud cloud-right" aria-hidden="true"></span>
     <div ref="bubbleRef" class="speech">假烟假酒假朋友！</div>
 
     <div ref="mascotRef" class="lulu-stage" aria-hidden="true">
@@ -81,51 +79,12 @@ onMounted(() => {
   place-items: center;
   overflow: hidden;
   background:
-    radial-gradient(circle at 50% 18%, rgb(232 220 199 / 34%), transparent 26%),
-    linear-gradient(180deg, #8b9d83 0%, #d4b895 62%, #e8dcc7 100%);
+    linear-gradient(90deg, rgb(17 24 39 / 6%) 1px, transparent 1px),
+    linear-gradient(180deg, rgb(17 24 39 / 6%) 1px, transparent 1px),
+    var(--page);
+  background-size: 32px 32px;
   pointer-events: none;
   perspective: 720px;
-}
-
-.cloud {
-  position: absolute;
-  width: 150px;
-  height: 52px;
-  border-radius: 999px;
-  background: rgb(247 239 216 / 70%);
-  filter: blur(0.2px);
-}
-
-.cloud::before,
-.cloud::after {
-  position: absolute;
-  content: "";
-  border-radius: 999px;
-  background: inherit;
-}
-
-.cloud::before {
-  left: 24px;
-  bottom: 20px;
-  width: 62px;
-  height: 62px;
-}
-
-.cloud::after {
-  right: 20px;
-  bottom: 14px;
-  width: 76px;
-  height: 76px;
-}
-
-.cloud-left {
-  left: -42px;
-  bottom: 15%;
-}
-
-.cloud-right {
-  right: -36px;
-  top: 26%;
 }
 
 .speech {
@@ -134,11 +93,10 @@ onMounted(() => {
   top: min(12vh, 100px);
   max-width: min(82vw, 340px);
   padding: 12px 16px;
-  border: 1px solid rgb(198 107 61 / 24%);
-  border-radius: 22px;
-  color: #7b412e;
-  background: rgb(232 220 199 / 94%);
-  box-shadow: 0 18px 45px rgb(48 54 34 / 18%);
+  border: 1px solid var(--line-strong);
+  color: var(--accent);
+  background: var(--surface);
+  box-shadow: 8px 8px 0 rgb(0 47 167 / 10%);
   font-weight: 900;
   text-align: center;
 }
@@ -158,7 +116,7 @@ onMounted(() => {
   bottom: 0;
   width: 100%;
   height: auto;
-  filter: drop-shadow(0 24px 34px rgb(48 54 34 / 20%));
+  filter: drop-shadow(0 24px 34px rgb(17 24 39 / 18%));
   transform: translateX(-50%);
 }
 
@@ -181,9 +139,9 @@ onMounted(() => {
   height: 126px;
   border-radius: 999px;
   background:
-    linear-gradient(90deg, rgb(247 239 216 / 18%), transparent 28%),
-    linear-gradient(180deg, #b08b6e, #6e4d35);
-  box-shadow: 0 8px 16px rgb(55 34 20 / 18%);
+    linear-gradient(90deg, rgb(255 255 255 / 28%), transparent 28%),
+    linear-gradient(180deg, #111827, #002fa7);
+  box-shadow: 0 8px 16px rgb(17 24 39 / 18%);
   transform: rotate(34deg);
 }
 
@@ -193,13 +151,13 @@ onMounted(() => {
   top: 6px;
   width: 128px;
   height: 84px;
-  border-radius: 30px;
+  border: 1px solid var(--line-strong);
+  border-radius: 0;
   background:
-    radial-gradient(ellipse at 35% 24%, rgb(247 239 216 / 36%) 0 20%, transparent 44%),
-    linear-gradient(160deg, #c08e3a, #c66b3d 70%, #b08b6e);
-  box-shadow:
-    inset -16px -14px 20px rgb(195 78 28 / 18%),
-    0 18px 34px rgb(82 45 17 / 24%);
+    linear-gradient(90deg, rgb(17 24 39 / 8%) 1px, transparent 1px),
+    linear-gradient(180deg, #ffffff, #e7edff);
+  background-size: 12px 12px;
+  box-shadow: 0 18px 34px rgb(17 24 39 / 18%);
   transform: rotate(-8deg) translateZ(56px);
 }
 
@@ -209,8 +167,7 @@ onMounted(() => {
   top: 19px;
   width: 98px;
   height: 58px;
-  border-radius: 26px;
-  border: 3px solid rgb(232 220 199 / 72%);
+  border: 3px solid var(--accent);
   transform: rotate(-8deg) translateZ(84px);
 }
 
@@ -224,9 +181,9 @@ onMounted(() => {
   width: 58px;
   height: 58px;
   border-radius: 999px;
-  color: var(--duanwu-terracotta);
-  background: rgb(232 220 199 / 90%);
-  box-shadow: 0 0 0 12px rgb(232 220 199 / 30%);
+  color: var(--surface);
+  background: var(--accent);
+  box-shadow: 0 0 0 12px rgb(0 47 167 / 12%);
   font-size: 18px;
   font-weight: 900;
   opacity: 0;

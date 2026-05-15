@@ -53,7 +53,7 @@ const selectOption = (value: string) => {
       <button class="icon-button close-button" type="button" aria-label="关闭" @click="$emit('close')">
         <X :size="18" />
       </button>
-      <p class="modal-kicker">游园入场题</p>
+      <p class="modal-kicker">基础题</p>
       <h2>{{ quiz.question }}</h2>
 
       <div class="choice-grid" role="radiogroup" :aria-label="quiz.question">
@@ -87,11 +87,10 @@ const selectOption = (value: string) => {
 .modal-kicker {
   width: fit-content;
   margin: 0 0 12px;
-  border: 1px solid rgb(198 107 61 / 20%);
-  border-radius: 999px;
+  border: 1px solid var(--line-strong);
   padding: 6px 10px;
-  color: var(--duanwu-terracotta);
-  background: rgb(232 220 199 / 58%);
+  color: var(--accent);
+  background: var(--accent-soft);
   font-size: 13px;
   font-weight: 900;
 }
@@ -99,10 +98,9 @@ const selectOption = (value: string) => {
 .modal h2 {
   margin: 0 0 24px;
   padding-right: 26px;
-  color: var(--duanwu-ink);
-  font-family: Fraunces, "Microsoft YaHei", serif;
+  color: var(--ink);
   font-size: 26px;
-  font-weight: 700;
+  font-weight: 900;
   line-height: 1.35;
 }
 
@@ -118,16 +116,10 @@ const selectOption = (value: string) => {
   align-items: center;
   gap: 10px;
   min-height: 58px;
-  border: 1px solid rgb(96 108 56 / 22%);
-  border-radius: 16px;
+  border: 1px solid var(--line-strong);
   padding: 11px 13px;
-  color: var(--duanwu-ink);
-  background:
-    radial-gradient(circle at 20% 15%, rgb(232 220 199 / 80%), transparent 32%),
-    linear-gradient(160deg, rgb(232 220 199 / 84%), rgb(139 157 131 / 24%));
-  box-shadow:
-    inset 0 1px 0 rgb(232 220 199 / 48%),
-    0 10px 24px rgb(48 54 34 / 8%);
+  color: var(--ink);
+  background: var(--surface);
   cursor: pointer;
   text-align: left;
   transition:
@@ -139,11 +131,9 @@ const selectOption = (value: string) => {
 
 .choice-option:hover,
 .choice-option.selected {
-  border-color: var(--duanwu-moss);
-  background:
-    radial-gradient(circle at 20% 15%, rgb(232 220 199 / 90%), transparent 32%),
-    linear-gradient(160deg, rgb(232 220 199 / 90%), rgb(192 142 58 / 20%));
-  box-shadow: 0 14px 30px rgb(48 54 34 / 14%);
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
   transform: translateY(-2px);
 }
 
@@ -153,9 +143,9 @@ const selectOption = (value: string) => {
   place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: 11px;
-  color: var(--duanwu-sand);
-  background: linear-gradient(135deg, var(--duanwu-moss), var(--duanwu-leaf));
+  border: 1px solid currentColor;
+  color: currentColor;
+  background: transparent;
   font-weight: 900;
 }
 
@@ -168,7 +158,7 @@ const selectOption = (value: string) => {
 
 .form-error {
   margin: 12px 0 0;
-  color: var(--duanwu-terracotta);
+  color: var(--accent);
   font-size: 14px;
 }
 

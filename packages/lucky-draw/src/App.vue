@@ -1,10 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { Home } from 'lucide-vue-next'
+import { Home, RefreshCcw } from 'lucide-vue-next'
 import AdvancedChallengeModal, { type AdvancedAnswerResult } from './components/AdvancedChallengeModal.vue'
 import CorrectAnswerAnimation from './components/CorrectAnswerAnimation.vue'
 import DrawStage from './components/DrawStage.vue'
-import FestivalBackground from './components/FestivalBackground.vue'
 import HeroSection from './components/HeroSection.vue'
 import PrizeModal from './components/PrizeModal.vue'
 import QuizModal from './components/QuizModal.vue'
@@ -26,6 +25,7 @@ const {
   claimBonusChance,
   recordBasicFailure,
   recordAdvancedAnswer,
+  resetDrawState,
 } = useLuckyDraw()
 const { launchPrizeCelebration } = usePrizeCelebration()
 
@@ -41,6 +41,7 @@ const showWrongAnswer = ref(false)
 const shouldAskNextBasicAfterPenalty = ref(false)
 const showFriendshipMessage = ref(false)
 const portalHref = import.meta.env.VITE_PORTAL_ROUTE ?? '/'
+const isDevResetEnabled = import.meta.env.DEV
 
 const availableBasicQuizzes = computed(() =>
   basicQuizzes.filter((quiz) => !drawState.value.basicFailedQuestionIds.includes(quiz.id)),
@@ -200,15 +201,50 @@ const returnHomeAfterWrongAnswer = () => {
 
   showFriendshipMessage.value = drawState.value.friendshipSunk
 }
+
+const resetDevState = () => {
+  if (!isDevResetEnabled) {
+    return
+  }
+
+  const confirmed = window.confirm('重置开发测试状态？会清空抽奖次数、答错记录和友谊翻船状态。')
+
+  if (!confirmed) {
+    return
+  }
+
+  resetDrawState()
+  showBasicQuiz.value = false
+  currentBasicQuiz.value = null
+  showAdvancedChallenge.value = false
+  currentAdvancedQuiz.value = null
+  advancedAnswerResult.value = null
+  isDrawing.value = false
+  openedPrize.value = ''
+  showCorrectAnswer.value = false
+  showWrongAnswer.value = false
+  shouldAskNextBasicAfterPenalty.value = false
+  showFriendshipMessage.value = false
+}
 </script>
 
 <template>
   <main class="festival-page" :class="{ 'is-drawing': isDrawing }">
-    <FestivalBackground />
-
     <a class="portal-link" :href="portalHref" aria-label="返回门户">
       <Home :size="17" />
     </a>
+
+    <button
+      v-if="isDevResetEnabled"
+      class="dev-reset-button"
+      type="button"
+      title="重置开发测试状态"
+      aria-label="重置开发测试状态"
+      @click="resetDevState"
+    >
+      <RefreshCcw :size="16" />
+      <span>重置</span>
+    </button>
 
     <HeroSection
       v-if="!isDrawing"
@@ -220,7 +256,6 @@ const returnHomeAfterWrongAnswer = () => {
       :basic-total-count="basicQuizzes.length"
       :advanced-answered-count="drawState.advancedAnsweredQuestionIds.length"
       :advanced-total-count="advancedQuizzes.length"
-      :advanced-score="drawState.advancedScore"
       @start="startEntry"
     />
 
@@ -237,7 +272,6 @@ const returnHomeAfterWrongAnswer = () => {
       v-if="showAdvancedChallenge"
       :quiz="currentAdvancedQuiz"
       :result="advancedAnswerResult"
-      :score="drawState.advancedScore"
       :answered-count="drawState.advancedAnsweredQuestionIds.length"
       :total-count="advancedQuizzes.length"
       :can-next="hasAvailableAdvancedQuestions"
@@ -277,11 +311,12 @@ const returnHomeAfterWrongAnswer = () => {
   align-content: center;
   gap: 24px;
   padding: 32px 20px;
+  color: var(--ink);
   background:
-    radial-gradient(circle at 50% 18%, rgb(192 142 58 / 18%), transparent 34%),
-    linear-gradient(180deg, rgb(232 220 199 / 40%), rgb(212 184 149 / 18%)),
-    url("./assets/duanwu-riverbank.png") center / cover,
-    linear-gradient(145deg, var(--duanwu-sand) 0%, var(--duanwu-oat) 100%);
+    linear-gradient(90deg, rgb(17 24 39 / 5%) 1px, transparent 1px),
+    linear-gradient(180deg, rgb(17 24 39 / 5%) 1px, transparent 1px),
+    var(--page);
+  background-size: 32px 32px;
 }
 
 .festival-page::before {
@@ -289,20 +324,7 @@ const returnHomeAfterWrongAnswer = () => {
   inset: 0;
   content: "";
   pointer-events: none;
-  opacity: 0.2;
-  background-image:
-    linear-gradient(90deg, rgb(96 108 56 / 10%) 1px, transparent 1px),
-    linear-gradient(180deg, rgb(96 108 56 / 8%) 1px, transparent 1px),
-    radial-gradient(circle, rgb(48 54 34 / 14%) 0 1px, transparent 1px);
-  background-position:
-    0 0,
-    0 0,
-    8px 10px;
-  background-size:
-    86px 86px,
-    86px 86px,
-    22px 22px;
-  mix-blend-mode: multiply;
+  border: 12px solid var(--surface);
 }
 
 .portal-link {
@@ -315,28 +337,53 @@ const returnHomeAfterWrongAnswer = () => {
   justify-content: center;
   width: 40px;
   height: 40px;
-  border: 1px solid rgb(96 108 56 / 28%);
-  border-radius: 22px;
-  color: var(--duanwu-moss);
-  background: rgb(232 220 199 / 86%);
-  box-shadow:
-    inset 0 1px 0 rgb(247 239 216 / 54%),
-    0 14px 34px rgb(48 54 34 / 16%);
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  background: var(--surface);
   text-decoration: none;
-  backdrop-filter: blur(12px);
-  transform: rotate(-4deg);
   transition:
     transform 0.2s ease,
-    box-shadow 0.2s ease,
-    background 0.2s ease;
+    background 0.2s ease,
+    color 0.2s ease;
 }
 
 .portal-link:hover {
-  background: rgb(247 239 216 / 92%);
-  box-shadow:
-    inset 0 1px 0 rgb(247 239 216 / 64%),
-    0 18px 40px rgb(48 54 34 / 20%);
-  transform: rotate(-4deg) translateY(-2px);
+  color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateY(-2px);
+}
+
+.dev-reset-button {
+  position: fixed;
+  z-index: 24;
+  right: calc(14px + env(safe-area-inset-right));
+  bottom: calc(14px + env(safe-area-inset-bottom));
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 74px;
+  min-height: 44px;
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  background: var(--surface);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 800;
+  transition:
+    transform 0.2s ease,
+    background 0.2s ease,
+    color 0.2s ease;
+}
+
+.dev-reset-button:hover {
+  color: var(--accent);
+  background: var(--accent-soft);
+  transform: translateY(-2px);
+}
+
+.dev-reset-button:active {
+  transform: translateY(0);
 }
 
 .friendship-backdrop {
@@ -356,17 +403,17 @@ const returnHomeAfterWrongAnswer = () => {
 }
 
 .friendship-modal h2 {
-  color: var(--duanwu-moss);
+  color: var(--ink);
   font-size: 26px;
 }
 
 .friendship-modal p:not(.modal-kicker) {
-  color: rgb(48 54 34 / 72%);
+  color: var(--muted);
   line-height: 1.7;
 }
 
 .modal-kicker {
-  color: var(--duanwu-terracotta);
+  color: var(--accent);
   font-size: 13px;
   font-weight: 800;
 }
@@ -388,6 +435,14 @@ const returnHomeAfterWrongAnswer = () => {
     left: calc(12px + env(safe-area-inset-left));
     width: 36px;
     height: 36px;
+  }
+
+  .dev-reset-button {
+    right: calc(12px + env(safe-area-inset-right));
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    min-width: 68px;
+    min-height: 42px;
+    font-size: 13px;
   }
 }
 </style>

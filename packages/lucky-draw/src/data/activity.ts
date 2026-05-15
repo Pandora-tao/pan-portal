@@ -24,13 +24,13 @@ export interface RedPacketPrize {
 
 export type Prize = TextPrize | RedPacketPrize
 
-export interface ZongziItem {
+export interface PrizeTile {
   id: number
   label: string
   rotate: number
 }
 
-export const title = '端午游园答题抽奖'
+export const title = '陶攀问答局'
 
 export const basicQuizzes: Quiz[] = [
   {
@@ -168,8 +168,8 @@ export const prizePool: Prize[] = [
 
 const rotations = [-8, 5, -4, 7, 0, -7, 4, -5, 8]
 
-export const zongziItems: ZongziItem[] = Array.from({ length: 9 }, (_, index) => ({
+export const prizeTiles: PrizeTile[] = Array.from({ length: 9 }, (_, index) => ({
   id: index,
-  label: `幸运粽子 ${index + 1}`,
+  label: `奖品格 ${index + 1}`,
   rotate: rotations[index] ?? 0,
 }))

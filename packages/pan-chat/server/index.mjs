@@ -1,5 +1,5 @@
 import { createReadStream } from 'node:fs'
-import { readFile, stat } from 'node:fs/promises'
+import { stat } from 'node:fs/promises'
 import { createServer } from 'node:http'
 import { extname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -11,6 +11,8 @@ const host = process.env.HOST ?? '::'
 const basePath = normalizeBasePath(process.env.CHAT_BASE_PATH ?? '/chat/')
 const apiPath = `${basePath}api/chat`
 const distDir = join(packageRoot, 'dist')
+const backendOrigin = normalizeBackendOrigin(process.env.PAN_CHAT_BACKEND_URL ?? 'http://localhost:8080')
+const backendChatPath = '/chat/api/chat'
 
 const mimeTypes = new Map([
   ['.css', 'text/css; charset=utf-8'],
@@ -29,7 +31,7 @@ const server = createServer(async (request, response) => {
     const requestUrl = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`)
 
     if (request.method === 'POST' && (requestUrl.pathname === apiPath || requestUrl.pathname === '/api/chat')) {
-      await handleChatRequest(request, response)
+      await proxyChatRequest(request, response)
       return
     }
 
@@ -65,109 +67,25 @@ server.listen(port, host, () => {
   console.log(`Pan chat is running at http://localhost:${port}${basePath}`)
 })
 
-async function handleChatRequest(request, response) {
-  const payload = await readJson(request)
-  const messages = normalizeMessages(payload?.messages)
-
-  if (!messages.length) {
-    sendJson(response, 400, { error: '请先输入一条消息。' })
-    return
-  }
-
-  const answer = await createPersonaReply(messages)
-  sendJson(response, 200, { answer })
-}
-
-async function createPersonaReply(messages) {
-  const apiKey = process.env.LLM_API_KEY ?? process.env.OPENAI_API_KEY
-  const baseUrl = (process.env.LLM_BASE_URL ?? 'https://api.openai.com/v1').replace(/\/$/, '')
-  const model = process.env.LLM_MODEL ?? 'gpt-4o-mini'
-
-  if (!apiKey) {
-    return createLocalDemoReply(messages)
-  }
-
-  const profile = await readProfile()
-  const response = await fetch(`${baseUrl}/chat/completions`, {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model,
-      temperature: Number(process.env.LLM_TEMPERATURE ?? 0.8),
-      messages: [
-        {
-          role: 'system',
-          content: [
-            '你正在扮演用户提供资料中的“我”，用于和访客进行自然对话。',
-            '严格参考个人资料、说话习惯和性格生成回复；资料没有写到的事实不要编造。',
-            '保持像真人聊天一样简洁、自然、有温度。遇到不确定信息时，直接说不确定或需要更多资料。',
-            '以下是资料：',
-            profile,
-          ].join('\n\n'),
-        },
-        ...messages,
-      ],
-    }),
-  })
-
-  if (!response.ok) {
-    const detail = await response.text()
-    throw new Error(`LLM request failed: ${response.status} ${detail}`)
-  }
-
-  const result = await response.json()
-  const content = result?.choices?.[0]?.message?.content
-
-  if (typeof content !== 'string' || !content.trim()) {
-    throw new Error('LLM returned an empty response')
-  }
-
-  return content.trim()
-}
-
-function createLocalDemoReply(messages) {
-  const latestUserMessage = [...messages].reverse().find((message) => message.role === 'user')?.content
-  const quotedMessage = latestUserMessage ? `你刚刚说「${truncateForReply(latestUserMessage)}」，我收到啦。` : '我收到你的消息啦。'
-
-  return [
-    '我现在是本地演示模式，没有连上大模型，所以先用简短版陪你聊。',
-    quotedMessage,
-    '你可以继续试试聊天流程；等接上模型后，我会按资料更自然地回复。',
-  ].join('\n')
-}
-
-function truncateForReply(value) {
-  return value.length > 48 ? `${value.slice(0, 48)}...` : value
-}
-
-async function readProfile() {
-  const profilePath = resolve(process.env.PAN_PROFILE_PATH ?? join(packageRoot, 'data/profile.md'))
-
+async function proxyChatRequest(request, response) {
   try {
-    return await readFile(profilePath, 'utf8')
-  } catch {
-    return '暂无个人资料。请提醒维护者补充 PAN_PROFILE_PATH 或 packages/pan-chat/data/profile.md。'
+    const requestBody = await readRequestBody(request)
+    const backendResponse = await fetch(new URL(backendChatPath, backendOrigin), {
+      method: 'POST',
+      headers: getForwardHeaders(request),
+      body: requestBody,
+    })
+    const responseBody = Buffer.from(await backendResponse.arrayBuffer())
+
+    response.writeHead(backendResponse.status, getResponseHeaders(backendResponse))
+    response.end(responseBody)
+  } catch (error) {
+    console.error('Failed to proxy chat request:', error)
+    sendJson(response, 502, { error: '后端聊天服务暂时不可用，请稍后再试。' })
   }
 }
 
-function normalizeMessages(messages) {
-  if (!Array.isArray(messages)) {
-    return []
-  }
-
-  return messages
-    .map((message) => ({
-      role: message?.role === 'assistant' ? 'assistant' : 'user',
-      content: typeof message?.content === 'string' ? message.content.trim() : '',
-    }))
-    .filter((message) => message.content)
-    .slice(-12)
-}
-
-async function readJson(request) {
+async function readRequestBody(request) {
   const chunks = []
   let totalSize = 0
 
@@ -181,11 +99,7 @@ async function readJson(request) {
     chunks.push(chunk)
   }
 
-  if (!chunks.length) {
-    return null
-  }
-
-  return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  return Buffer.concat(chunks)
 }
 
 async function serveStatic(pathname, response) {
@@ -221,6 +135,38 @@ async function serveStatic(pathname, response) {
 function normalizeBasePath(value) {
   const withLeadingSlash = value.startsWith('/') ? value : `/${value}`
   return withLeadingSlash.endsWith('/') ? withLeadingSlash : `${withLeadingSlash}/`
+}
+
+function normalizeBackendOrigin(value) {
+  const url = new URL(value)
+  return `${url.protocol}//${url.host}`
+}
+
+function getForwardHeaders(request) {
+  const headers = new Headers()
+  const blockedHeaders = new Set(['connection', 'content-length', 'host', 'origin', 'transfer-encoding'])
+
+  for (const [name, value] of Object.entries(request.headers)) {
+    if (!value || blockedHeaders.has(name.toLowerCase())) {
+      continue
+    }
+
+    headers.set(name, Array.isArray(value) ? value.join(', ') : value)
+  }
+
+  if (!headers.has('content-type')) {
+    headers.set('content-type', 'application/json')
+  }
+
+  return headers
+}
+
+function getResponseHeaders(backendResponse) {
+  const contentType = backendResponse.headers.get('content-type') ?? 'application/json; charset=utf-8'
+
+  return {
+    'Content-Type': contentType,
+  }
 }
 
 function sendJson(response, statusCode, data) {

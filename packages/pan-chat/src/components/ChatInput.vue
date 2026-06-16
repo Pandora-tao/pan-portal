@@ -78,7 +78,7 @@ function resetTextareaHeight() {
         rows="1"
         :maxlength="maxLength + 100"
         :disabled="disabled"
-        placeholder="输入消息..."
+        placeholder="问 Pan 点什么..."
         aria-label="输入消息"
         @keydown="handleKeydown"
         @input="handleInput"

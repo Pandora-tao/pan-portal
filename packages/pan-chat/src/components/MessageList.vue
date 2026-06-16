@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { nextTick, ref, watch } from 'vue'
+import { gsap } from 'gsap'
 import { useAutoScroll } from '../composables/useAutoScroll'
 import type { ChatMessage } from '../types/chat'
 import EmptyState from './EmptyState.vue'
@@ -7,43 +8,36 @@ import MessageItem from './MessageItem.vue'
 
 const props = defineProps<{
   messages: ChatMessage[]
-  lastAssistantId?: string | null
-  hasSessions?: boolean
-  currentSessionId?: string | null
-}>()
-
-const emit = defineEmits<{
-  resend: [content: string]
-  regenerate: []
-  createSession: []
 }>()
 
 const messageList = ref<HTMLElement | null>(null)
-const { scrollToBottom, autoScrollToBottom, handleScroll } = useAutoScroll(messageList)
+const { autoScrollToBottom, handleScroll } = useAutoScroll(messageList)
 
 // 新消息出现时：只在用户接近底部时自动跟随
 watch(
   () => props.messages.length,
-  () => {
+  async () => {
     void autoScrollToBottom()
+    await nextTick()
+    animateLatestMessage()
   },
   { flush: 'post' },
 )
 
-// 会话切换时：强制滚动到底部
-watch(
-  () => props.currentSessionId,
-  () => {
-    void scrollToBottom('instant')
-  },
-)
+function animateLatestMessage() {
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-function handleResend(content: string) {
-  emit('resend', content)
-}
+  const list = messageList.value
+  if (!list) return
 
-function handleRegenerate() {
-  emit('regenerate')
+  const latest = list.querySelector('.message-row:last-of-type')
+  if (!latest) return
+
+  gsap.fromTo(
+    latest,
+    { autoAlpha: 0, y: 18, scale: 0.985 },
+    { autoAlpha: 1, y: 0, scale: 1, duration: 0.42, ease: 'power3.out', overwrite: 'auto' },
+  )
 }
 </script>
 
@@ -56,16 +50,8 @@ function handleRegenerate() {
   >
     <template v-if="messages.length === 0">
       <EmptyState
-        v-if="!hasSessions"
-        title="还没有会话"
-        description="开始新聊天，和 Pan 说点什么吧。"
-        action-text="开始新聊天"
-        @action="emit('createSession')"
-      />
-      <EmptyState
-        v-else
-        title="发送第一条消息"
-        description="在下方输入框输入内容，开始对话。"
+        title="开始一段即时对话"
+        description="这里不会显示历史会话。刷新页面后，对话会回到空白状态。"
       />
     </template>
     <template v-else>
@@ -73,9 +59,6 @@ function handleRegenerate() {
         v-for="message in messages"
         :key="message.id"
         :message="message"
-        :can-regenerate="message.role === 'assistant' && message.id === lastAssistantId && message.status !== 'pending' && message.status !== 'streaming'"
-        @resend="handleResend"
-        @regenerate="handleRegenerate"
       />
     </template>
   </section>

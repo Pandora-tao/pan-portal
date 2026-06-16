@@ -224,7 +224,7 @@ interface ChatMessage {
 
 ### 目标
 
-建立完整但不过度复杂的聊天类型系统。
+建立分阶段演进的聊天类型系统：第一阶段先兼容当前旧接口和单页聊天；后续阶段再扩展为完整会话模型。类型设计不能为了“最终态好看”而破坏当前旧接口兼容性。
 
 ### 需求
 
@@ -237,15 +237,52 @@ src/types/chat.ts
 ### 类型定义
 
 ```ts
-export type ChatRole = 'system' | 'user' | 'assistant'
+/**
+ * 第一阶段角色类型。
+ * 当前旧接口只支持 user / assistant，不强行引入 system。
+ */
+export type ChatRole = 'user' | 'assistant'
 
-export type MessageStatus =
-  | 'pending'
-  | 'streaming'
-  | 'completed'
-  | 'failed'
-  | 'stopped'
+/**
+ * 第一阶段消息状态。
+ * streaming / stopped 属于 SSE 阶段，暂不在模块二第一阶段强制落地。
+ */
+export type MessageStatus = 'pending' | 'completed' | 'failed'
 
+/**
+ * 当前前端 UI 使用的消息模型。
+ * 第一阶段不强制包含 sessionId，因为当前还没有会话管理。
+ */
+export interface ChatMessage {
+  id: string
+  role: ChatRole
+  content: string
+  status: MessageStatus
+  createdAt: string
+  errorMessage?: string
+}
+
+/**
+ * 旧接口请求消息。
+ * 用于兼容 POST /chat/api/chat。
+ */
+export interface LegacyChatMessage {
+  role: ChatRole
+  content: string
+}
+
+export interface LegacyChatRequest {
+  messages: LegacyChatMessage[]
+}
+
+export interface LegacyChatResponse {
+  answer: string
+}
+
+/**
+ * 后续会话阶段再启用的完整会话模型。
+ * 不要求在 PC-FE-002 第一阶段立即落地。
+ */
 export interface ChatSession {
   id: string
   title: string
@@ -255,15 +292,13 @@ export interface ChatSession {
   lastMessagePreview?: string
 }
 
-export interface ChatMessage {
-  id: string
+/**
+ * 后续会话阶段的持久化消息模型。
+ * 用于和后端接口对齐，不直接替代第一阶段 ChatMessage。
+ */
+export interface PersistedChatMessage extends ChatMessage {
   sessionId: string
-  role: ChatRole
-  content: string
-  status: MessageStatus
-  createdAt: string
   updatedAt?: string
-  errorMessage?: string
   metadata?: ChatMessageMetadata
 }
 
@@ -284,13 +319,57 @@ export interface CreateSessionPayload {
 }
 ```
 
+### 类型分层说明
+
+模块二的核心不是一次性定义一个“最终完美模型”，而是明确哪些类型现在用，哪些类型后面用。
+
+第一阶段立即使用：
+
+```txt
+ChatRole
+MessageStatus
+ChatMessage
+LegacyChatMessage
+LegacyChatRequest
+LegacyChatResponse
+```
+
+后续会话阶段使用：
+
+```txt
+ChatSession
+PersistedChatMessage
+ChatMessageMetadata
+SendMessagePayload
+CreateSessionPayload
+```
+
+这样做的原因是：当前旧接口没有 `sessionId`，也没有服务端消息 ID。如果第一阶段强制所有消息都带 `sessionId`，会让当前重构变复杂，还会诱导 agent 提前实现会话管理。
+
 ### 验收标准
 
-1. 不再使用纯数字 `Date.now()` 作为正式消息 ID。
-2. 消息必须包含 `sessionId`。
-3. 消息必须包含 `status`。
-4. 会话和消息类型可以直接给后端对齐。
-5. 类型文件不和具体组件强绑定。
+1. 不再使用纯数字 `Date.now()` 作为正式消息 ID，统一通过 `createId()` 生成字符串 ID。
+2. 第一阶段 `ChatMessage` 不强制包含 `sessionId`，避免提前引入会话管理。
+3. 第一阶段 `ChatMessage` 必须包含 `status` 和 `createdAt`。
+4. 旧接口请求/响应类型必须单独定义为 `LegacyChatRequest`、`LegacyChatResponse`，不要混用最终后端接口类型。
+5. `ChatRole` 第一阶段只包含 `user` 和 `assistant`，不提前引入 `system`。
+6. 完整会话模型通过 `ChatSession` 和 `PersistedChatMessage` 预留，但不要求第一阶段使用。
+7. 类型文件不和具体组件强绑定。
+8. 类型设计必须和模块一执行边界保持一致，不能诱导 agent 提前实现会话、SSE 或登录。
+
+### Grill-me 结论
+
+模块二最容易犯的错是“为了未来，把现在搞复杂”。
+
+当前阶段的类型设计应该遵守：
+
+1. 当前真实用到的类型要简单、直接、可运行。
+2. 后续需要的类型可以预留，但不能强制进入当前业务流。
+3. 旧接口兼容类型必须独立存在，不能和未来新接口混在一起。
+4. `sessionId` 是会话管理阶段的核心字段，不应该在模块二第一阶段强制落地。
+5. `streaming`、`stopped` 是 SSE 阶段的状态，不应该在模块二第一阶段强制落地。
+
+换句话说，模块二要做的是“类型地基”，不是“类型宇宙”。
 
 ---
 
@@ -308,7 +387,7 @@ export interface CreateSessionPayload {
 
 ### 目标
 
-建立统一请求入口。
+建立轻量统一请求入口：第一阶段只负责封装 `fetch`、统一 JSON 请求、自动携带 `X-Visitor-Id`、集中处理 HTTP 错误；`ApiResult<T>` 作为未来新后端接口规范预留，但不强制套用到当前旧接口 `/chat/api/chat`。
 
 ### 新增文件
 
@@ -317,9 +396,13 @@ src/api/request.ts
 src/api/types.ts
 ```
 
-### 统一响应结构
+### API 类型定义
 
 ```ts
+/**
+ * 未来新后端接口统一响应结构。
+ * 注意：当前旧接口 POST /chat/api/chat 返回 { answer: string }，不强制使用 ApiResult。
+ */
 export interface ApiResult<T> {
   code: number
   message: string
@@ -331,26 +414,116 @@ export interface ApiError {
   message: string
   details?: unknown
 }
+
+export interface RequestOptions extends RequestInit {
+  skipJsonParse?: boolean
+}
+
+export interface ApiRequestConfig {
+  signal?: AbortSignal
+}
 ```
+
+### 第一阶段 request 行为边界
+
+第一阶段的 `request.ts` 只做这些事：
+
+1. 基于原生 `fetch` 封装普通 JSON 请求。
+2. 请求有 body 时自动补充 `Content-Type: application/json`。
+3. 每次请求自动携带 `X-Visitor-Id`。
+4. 透传 `AbortSignal`。
+5. HTTP 状态码非 2xx 时抛出错误。
+6. 默认按 JSON 解析响应。
+7. 支持 `skipJsonParse`，为后续无响应体接口预留。
+
+第一阶段暂不做：
+
+1. 不处理 `Authorization` token 注入，只预留设计方向。
+2. 不做 refresh token。
+3. 不做全局 401 跳转登录。
+4. 不做 SSE / stream 解析。
+5. 不强行解析 `ApiResult<T>` 业务 code。
+6. 不实现请求重试。
+7. 不实现请求取消队列。
+8. 不引入 axios。
 
 ### 请求封装要求
 
-1. 基于 `fetch` 封装，暂不强制引入 axios。
-2. 自动设置 `Content-Type: application/json`。
-3. 自动携带 `X-Visitor-Id`。
-4. 如果未来存在 token，自动携带 `Authorization: Bearer ${token}`。
-5. 统一处理 HTTP 错误。
-6. 统一处理业务错误。
-7. 支持传入 `AbortSignal`。
-8. 支持普通 JSON 请求。
-9. 支持后续扩展 SSE 请求，但 SSE 可以单独封装。
+1. 基于原生 `fetch` 封装，不引入 axios。
+2. 默认支持普通 JSON 请求。
+3. 当请求存在 body 且未显式传入 `Content-Type` 时，自动设置 `Content-Type: application/json`。
+4. 自动携带 `X-Visitor-Id`。
+5. 支持传入 `AbortSignal`。
+6. HTTP 非 2xx 响应统一抛出错误。
+7. 默认解析 JSON 响应。
+8. 支持 `skipJsonParse` 选项。
+9. 不在第一阶段处理业务 `code`，因为旧接口不是 `ApiResult<T>`。
+10. 不在第一阶段注入 `Authorization`，登录预留放到模块六。
+11. 不在第一阶段处理 SSE，SSE 放到模块十一。
+
+### 建议 request.ts 结构
+
+```ts
+import { getVisitorId } from '../composables/useVisitorId'
+import type { RequestOptions } from './types'
+
+export async function request<T>(url: string, options: RequestOptions = {}): Promise<T> {
+  const headers = new Headers(options.headers)
+
+  if (options.body && !headers.has('Content-Type')) {
+    headers.set('Content-Type', 'application/json')
+  }
+
+  headers.set('X-Visitor-Id', getVisitorId())
+
+  const response = await fetch(url, {
+    ...options,
+    headers,
+  })
+
+  if (!response.ok) {
+    throw new Error(`请求失败：${response.status}`)
+  }
+
+  if (options.skipJsonParse) {
+    return undefined as T
+  }
+
+  return response.json() as Promise<T>
+}
+```
+
+注意：这里的错误处理保持轻量，不要在模块三里实现复杂错误码映射。错误展示和消息级失败状态属于模块十四。
 
 ### 验收标准
 
 1. 组件中不直接写 `fetch('/xxx')`。
-2. 所有普通接口请求通过 `request.ts` 发起。
-3. 请求头中可以带上 `X-Visitor-Id`。
-4. 后续加 token 不需要逐个改组件。
+2. 当前旧聊天接口通过 `src/api/chat.ts` 调用，并间接使用 `request.ts`。
+3. `request.ts` 能自动携带 `X-Visitor-Id`。
+4. `request.ts` 不强制旧接口返回 `ApiResult<T>`。
+5. `ApiResult<T>` 可以定义，但只作为未来新接口规范预留。
+6. `Authorization` 注入不在模块三实现，避免提前引入登录复杂度。
+7. SSE/stream 请求不在模块三实现，避免污染普通 JSON 请求封装。
+8. 不引入 axios。
+9. 当前 `/chat/api/chat` 功能保持可用。
+
+### Grill-me 结论
+
+模块三最容易犯的错是把 `request.ts` 做成“万能请求宇宙”：token、刷新 token、业务 code、SSE、重试、队列、toast 全塞进去。
+
+当前阶段不要这么做。
+
+模块三只需要解决一件事：让普通 API 请求从组件里消失，并且有一个稳定、轻量、可扩展的入口。
+
+第一阶段的正确边界是：
+
+1. `fetch` 封装起来。
+2. `X-Visitor-Id` 自动带上。
+3. HTTP 错误集中抛出。
+4. 旧接口继续按 `{ answer: string }` 工作。
+5. 新接口的 `ApiResult<T>` 先定义，不强用。
+
+换句话说，模块三要做的是“铺路”，不是“修机场”。
 
 ---
 
@@ -521,23 +694,21 @@ visitor_${uuid}
 
 ### 名称
 
-预留登录与用户状态模块。
+预留登录能力与用户状态契约。
 
 ### 当前阶段要求
 
-当前不实现真实登录 UI，不要求用户登录后才能使用。
+当前不实现真实登录 UI，不要求用户登录后才能使用；聊天流程继续以游客模式和 visitorId 工作。
 
 ### 目标
 
-提前设计 auth 模块，避免后续引入登录时大规模重构。
+在文档中明确未来登录接入契约和边界，避免后续引入登录时推翻 visitorId 与请求层设计。
 
-### 新增文件
+### 当前阶段不新增代码文件
 
-```txt
-src/api/auth.ts
-src/stores/auth.ts
-src/types/user.ts
-```
+当前阶段默认不创建 `src/api/auth.ts`、`src/stores/auth.ts`、`src/types/user.ts`。
+
+如果后续团队明确要求提前落代码，最多只允许新增纯类型文件 `src/types/user.ts`，且只能包含 `UserInfo`、`AuthState` 等类型定义，不允许运行时代码、接口调用、token 存储或 store 初始化。
 
 ### 用户类型
 
@@ -561,7 +732,7 @@ export interface AuthState {
 }
 ```
 
-### 预留接口
+### 未来接口契约
 
 ```http
 POST /api/auth/login
@@ -569,27 +740,56 @@ POST /api/auth/logout
 GET /api/me
 ```
 
+这些接口只作为未来后端契约，当前阶段不创建 `src/api/auth.ts`，不调用 `/api/auth/login`、`/api/auth/logout` 或 `/api/me`。
+
 ### 鉴权优先级
 
-1. 如果存在 token，使用：
+未来登录能力真正接入后，请求身份优先级如下。
+
+1. 如果存在 token，普通 API 请求可以使用：
 
 ```http
 Authorization: Bearer ${token}
 ```
 
-2. 如果不存在 token，使用：
+同时仍然可以携带 `X-Visitor-Id`，用于日志追踪和游客数据绑定线索。
+
+2. 如果不存在 token，继续只使用：
 
 ```http
 X-Visitor-Id: ${visitorId}
 ```
 
+当前阶段 `request.ts` 只注入 `X-Visitor-Id`，不读取 token，也不注入 `Authorization`。
+
+### visitorId 与登录用户关系
+
+当前阶段：
+
+```txt
+visitorId = 匿名浏览器标识
+```
+
+未来登录后：
+
+```txt
+token = 登录身份凭证
+visitorId = 匿名访问轨迹 / 设备追踪 / 游客数据绑定线索
+```
+
+未来可以在登录请求中携带 visitorId，由后端决定是否把游客数据绑定到登录用户；当前阶段不实现该流程。
+
 ### 验收标准
 
 1. 当前不登录也能使用。
-2. auth 结构存在。
-3. request 层已经预留 token 注入位置。
-4. 不出现假登录、硬编码 token。
-5. 后续加登录时不用重写请求层。
+2. 当前不创建真实登录 UI 或注册 UI。
+3. 当前不调用登录、登出或 `/api/me` 接口。
+4. 当前不创建真实 auth store。
+5. 当前不写死假 token，不向 localStorage 写入 token。
+6. 当前不实现 refresh token 或 401 自动跳转登录。
+7. 当前 `request.ts` 只注入 `X-Visitor-Id`，不注入 `Authorization`。
+8. `UserInfo`、`AuthState`、未来接口契约只作为文档预留。
+9. 后续加登录时不用推翻 visitorId 和请求层设计。
 
 ---
 
@@ -1541,15 +1741,16 @@ PC-FE-006
 
 目标：
 
-1. 建立 auth 模块。
-2. 预留 token。
-3. 预留 `/api/me`。
-4. 保持游客模式优先可用。
+1. 在文档中预留登录契约。
+2. 明确 token 与 visitorId 的关系。
+3. 明确 `/api/auth/login`、`/api/auth/logout`、`/api/me` 只作为未来接口契约。
+4. 保持游客模式优先可用，不新增 auth 运行时代码。
 
 完成后效果：
 
 1. 当前不登录也能使用。
-2. 后续加登录不用重构请求层和状态层。
+2. 当前没有 token、auth store 或登录 UI。
+3. 后续加登录不用推翻 visitorId 和请求层设计。
 
 ---
 
@@ -1631,9 +1832,10 @@ PC-FE-006。
 
 要求：
 1. 不实现真实登录页面。
-2. 新增 auth store 和 auth api。
-3. request 层预留 Authorization token 注入。
-4. 没有 token 时继续使用 X-Visitor-Id。
+2. 不新增 auth store 和 auth api。
+3. 只在文档中预留 UserInfo、AuthState 和未来 auth 接口契约。
+4. request.ts 当前不注入 Authorization，只继续使用 X-Visitor-Id。
+5. 不调用 /api/auth/login、/api/auth/logout 或 /api/me。
 ```
 
 ---

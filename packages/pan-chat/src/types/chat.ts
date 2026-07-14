@@ -67,5 +67,6 @@ export interface UserInfo {
   id: string
   email: string
   displayName: string
+  realName: string | null
   createdAt: string
 }

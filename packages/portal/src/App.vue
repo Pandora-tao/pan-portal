@@ -42,6 +42,7 @@ const authError = ref('')
 const currentUser = ref<UserInfo | null>(null)
 const authForm = reactive({
   displayName: '',
+  realName: '',
   email: '',
   password: '',
   confirmPassword: '',
@@ -117,6 +118,7 @@ async function submitAuth() {
         : await register({
             email: authForm.email,
             displayName: authForm.displayName,
+            realName: authForm.realName.trim() || undefined,
             password: authForm.password,
           })
     authForm.password = ''
@@ -555,6 +557,18 @@ onBeforeUnmount(() => {
               minlength="2"
               maxlength="40"
               placeholder="你的称呼"
+            />
+          </label>
+
+          <label v-if="authMode === 'register'" class="auth-field">
+            <span>真实姓名（选填）</span>
+            <input
+              v-model.trim="authForm.realName"
+              name="realName"
+              type="text"
+              autocomplete="name"
+              maxlength="80"
+              placeholder="可不填写"
             />
           </label>
 

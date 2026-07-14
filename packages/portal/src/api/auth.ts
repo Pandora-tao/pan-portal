@@ -2,6 +2,7 @@ export interface UserInfo {
   id: string
   email: string
   displayName: string
+  realName: string | null
   createdAt: string
 }
 
@@ -14,6 +15,7 @@ interface ApiResult<T> {
 interface RegisterPayload {
   email: string
   displayName: string
+  realName?: string
   password: string
 }
 

@@ -30,6 +30,12 @@ pnpm build
 
 Avoid adding dependencies inside package folders unless there is a clear package-specific reason. Prefer adding shared frontend/runtime dependencies to the root `package.json`.
 
+## Dependencies And External Assets
+
+- When a requirement would benefit from a new dependency or downloaded external asset, proactively propose it instead of silently reducing implementation quality.
+- Before installing or downloading anything, explain its purpose, source, affected scope, and expected benefit, then obtain explicit user approval.
+- Without approval, do not install dependencies or download assets.
+
 ## Local Apps And Routes
 
 Current dev routing is portal-first:

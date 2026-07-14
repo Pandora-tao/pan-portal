@@ -86,7 +86,12 @@ function resetTextareaHeight() {
       <span v-if="isTooLong" class="composer-hint error">消息太长了，请缩短后再发送</span>
       <span v-else-if="isNearLimit" class="composer-hint warn">{{ draft.length }} / {{ maxLength }}</span>
     </div>
-    <button type="submit" :disabled="!canSend" aria-label="发送消息">
+    <button
+      type="submit"
+      :class="{ 'is-ready': canSend }"
+      :disabled="!canSend"
+      aria-label="发送消息"
+    >
       <SendHorizontal :size="21" />
     </button>
   </form>

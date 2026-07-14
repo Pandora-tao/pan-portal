@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { gsap } from 'gsap'
-import { Home, MessageCircle, Square, Trash2 } from 'lucide-vue-next'
+import { Home, Square, Trash2 } from 'lucide-vue-next'
+import avatarUrl from '../../portal/src/assets/pan-avatar.png'
 import ChatInput from './components/ChatInput.vue'
 import MessageList from './components/MessageList.vue'
 import { useChat } from './composables/useChat'
@@ -80,7 +81,7 @@ onUnmounted(() => {
     <section class="chat-shell" aria-label="和 Pan 聊天">
       <header class="chat-header">
         <div class="app-mark" aria-hidden="true">
-          <MessageCircle :size="25" :stroke-width="2.25" />
+          <img :src="avatarUrl" alt="" />
         </div>
         <div class="chat-title">
           <p>Pan's chat</p>

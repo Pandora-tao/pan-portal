@@ -1,8 +1,9 @@
 <script setup lang="ts">
-import { nextTick, onBeforeUnmount, onMounted, reactive, ref, type ComponentPublicInstance } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, type ComponentPublicInstance } from 'vue'
 import * as Matter from 'matter-js'
-import { Sparkles } from 'lucide-vue-next'
+import { ArrowRight, Eye, EyeOff, LoaderCircle, LogOut, Sparkles, UserRound, X } from 'lucide-vue-next'
 import avatarUrl from './assets/pan-avatar.png'
+import { getCurrentUser, login, logout, register, type UserInfo } from './api/auth'
 import DraggableDecoration from './draggable-decorations/DraggableDecoration.vue'
 import {
   createDecorationStyles,
@@ -31,6 +32,19 @@ const apps: PortalApp[] = [
 const activeDecoration = ref<DecorKey | ''>('')
 const activeBubble = ref<DecorKey | ''>('')
 const isGiftIntroOpen = ref(true)
+const authMode = ref<'login' | 'register'>('login')
+const isAuthOpen = ref(false)
+const isAuthSubmitting = ref(false)
+const isSessionLoading = ref(true)
+const showPassword = ref(false)
+const authError = ref('')
+const currentUser = ref<UserInfo | null>(null)
+const authForm = reactive({
+  displayName: '',
+  email: '',
+  password: '',
+  confirmPassword: '',
+})
 const portalShell = ref<HTMLElement | null>(null)
 const decorLayer = ref<HTMLElement | null>(null)
 const decorElementRefs = new Map<DecorKey, HTMLElement>()
@@ -43,6 +57,87 @@ let engine: Matter.Engine | undefined
 let runner: Matter.Runner | undefined
 let resizeObserver: ResizeObserver | undefined
 let rebuildTimer: number | undefined
+
+const authTitle = computed(() => (authMode.value === 'login' ? '欢迎回来' : '创建账户'))
+const authSubmitText = computed(() => (authMode.value === 'login' ? '登录' : '注册并登录'))
+
+function openAuth(mode: 'login' | 'register' = 'login') {
+  authMode.value = mode
+  authError.value = ''
+  showPassword.value = false
+  isAuthOpen.value = true
+  nextTick(() => document.querySelector<HTMLInputElement>('#auth-email')?.focus())
+}
+
+function closeAuth() {
+  if (!isAuthSubmitting.value) {
+    isAuthOpen.value = false
+    authError.value = ''
+  }
+}
+
+function switchAuthMode(mode: 'login' | 'register') {
+  authMode.value = mode
+  authError.value = ''
+}
+
+function validateAuthForm() {
+  if (!authForm.email.trim() || !authForm.email.includes('@')) {
+    return '请输入有效的邮箱地址'
+  }
+  if (authMode.value === 'register' && authForm.displayName.trim().length < 2) {
+    return '昵称至少需要 2 个字符'
+  }
+  if (authForm.password.length < 8) {
+    return '密码至少需要 8 个字符'
+  }
+  if (authMode.value === 'register' && authForm.password !== authForm.confirmPassword) {
+    return '两次输入的密码不一致'
+  }
+  return ''
+}
+
+async function submitAuth() {
+  const validationMessage = validateAuthForm()
+  if (validationMessage) {
+    authError.value = validationMessage
+    return
+  }
+
+  isAuthSubmitting.value = true
+  authError.value = ''
+  try {
+    currentUser.value =
+      authMode.value === 'login'
+        ? await login({ email: authForm.email, password: authForm.password })
+        : await register({
+            email: authForm.email,
+            displayName: authForm.displayName,
+            password: authForm.password,
+          })
+    authForm.password = ''
+    authForm.confirmPassword = ''
+    isAuthOpen.value = false
+  } catch (error) {
+    authError.value = error instanceof Error ? error.message : '操作失败，请稍后再试'
+  } finally {
+    isAuthSubmitting.value = false
+  }
+}
+
+async function signOut() {
+  try {
+    await logout()
+  } finally {
+    currentUser.value = null
+  }
+}
+
+function handleEscape(event: KeyboardEvent) {
+  if (event.key === 'Escape' && isAuthOpen.value) {
+    closeAuth()
+  }
+}
 
 function setDecorElementRef(key: DecorKey, element: Element | ComponentPublicInstance | null) {
   if (element instanceof HTMLElement) {
@@ -227,8 +322,19 @@ async function setupPhysics() {
 
 onMounted(() => {
   setupPhysics()
+  getCurrentUser()
+    .then((user) => {
+      currentUser.value = user
+    })
+    .catch(() => {
+      currentUser.value = null
+    })
+    .finally(() => {
+      isSessionLoading.value = false
+    })
   window.addEventListener('pointerup', handleWindowPointerEnd)
   window.addEventListener('pointercancel', handleWindowPointerEnd)
+  window.addEventListener('keydown', handleEscape)
   giftIntroTimer = window.setTimeout(() => {
     isGiftIntroOpen.value = false
   }, 2400)
@@ -248,6 +354,7 @@ onBeforeUnmount(() => {
   window.clearTimeout(rebuildTimer)
   window.removeEventListener('pointerup', handleWindowPointerEnd)
   window.removeEventListener('pointercancel', handleWindowPointerEnd)
+  window.removeEventListener('keydown', handleEscape)
   resizeObserver?.disconnect()
   hideDecorationBubble()
   cleanupPhysics()
@@ -320,6 +427,23 @@ onBeforeUnmount(() => {
           <img :src="avatarUrl" alt="" />
         </a>
         <p><Sparkles :size="15" />Pan's space</p>
+        <div class="account-slot">
+          <span v-if="isSessionLoading" class="account-loading" aria-label="正在读取登录状态">
+            <LoaderCircle :size="18" />
+          </span>
+          <template v-else-if="currentUser">
+            <span class="account-name" :title="currentUser.email">
+              <UserRound :size="16" />{{ currentUser.displayName }}
+            </span>
+            <button type="button" class="account-logout" aria-label="退出登录" @click="signOut">
+              <LogOut :size="16" />
+            </button>
+          </template>
+          <button v-else type="button" class="account-trigger" @click="openAuth('login')">
+            <UserRound :size="16" />
+            <span>登录 / 注册</span>
+          </button>
+        </div>
       </header>
 
       <section class="app-grid" aria-label="子应用列表">
@@ -349,5 +473,119 @@ onBeforeUnmount(() => {
         </a>
       </section>
     </section>
+
+    <div v-if="isAuthOpen" class="auth-overlay" @mousedown.self="closeAuth">
+      <section class="auth-card" role="dialog" aria-modal="true" :aria-labelledby="'auth-title'">
+        <span class="auth-staple" aria-hidden="true"></span>
+        <button type="button" class="auth-close" aria-label="关闭" @click="closeAuth">
+          <X :size="20" />
+        </button>
+
+        <header class="auth-heading">
+          <span class="auth-folio">01</span>
+          <div>
+            <h2 id="auth-title">{{ authTitle }}</h2>
+            <p>登录后可以在不同设备继续使用你的账户。</p>
+          </div>
+        </header>
+
+        <div class="auth-tabs" role="tablist" aria-label="账户操作">
+          <button
+            type="button"
+            role="tab"
+            :aria-selected="authMode === 'login'"
+            :class="{ 'is-active': authMode === 'login' }"
+            @click="switchAuthMode('login')"
+          >
+            登录
+          </button>
+          <button
+            type="button"
+            role="tab"
+            :aria-selected="authMode === 'register'"
+            :class="{ 'is-active': authMode === 'register' }"
+            @click="switchAuthMode('register')"
+          >
+            注册
+          </button>
+        </div>
+
+        <form class="auth-form" @submit.prevent="submitAuth">
+          <label v-if="authMode === 'register'" class="auth-field">
+            <span>昵称</span>
+            <input
+              v-model.trim="authForm.displayName"
+              name="displayName"
+              type="text"
+              autocomplete="nickname"
+              minlength="2"
+              maxlength="40"
+              placeholder="你的称呼"
+            />
+          </label>
+
+          <label class="auth-field">
+            <span>邮箱</span>
+            <input
+              id="auth-email"
+              v-model.trim="authForm.email"
+              name="email"
+              type="email"
+              inputmode="email"
+              autocomplete="email"
+              maxlength="254"
+              placeholder="name@example.com"
+            />
+          </label>
+
+          <label class="auth-field">
+            <span>密码</span>
+            <span class="password-input">
+              <input
+                v-model="authForm.password"
+                name="password"
+                :type="showPassword ? 'text' : 'password'"
+                :autocomplete="authMode === 'login' ? 'current-password' : 'new-password'"
+                minlength="8"
+                maxlength="128"
+                placeholder="至少 8 个字符"
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                :aria-label="showPassword ? '隐藏密码' : '显示密码'"
+                @click="showPassword = !showPassword"
+              >
+                <EyeOff v-if="showPassword" :size="18" />
+                <Eye v-else :size="18" />
+              </button>
+            </span>
+          </label>
+
+          <label v-if="authMode === 'register'" class="auth-field">
+            <span>确认密码</span>
+            <input
+              v-model="authForm.confirmPassword"
+              name="confirmPassword"
+              :type="showPassword ? 'text' : 'password'"
+              autocomplete="new-password"
+              minlength="8"
+              maxlength="128"
+              placeholder="再次输入密码"
+            />
+          </label>
+
+          <p v-if="authError" class="auth-error" role="alert">{{ authError }}</p>
+
+          <button type="submit" class="auth-submit" :disabled="isAuthSubmitting">
+            <LoaderCircle v-if="isAuthSubmitting" class="is-spinning" :size="19" />
+            <template v-else>
+              <span>{{ authSubmitText }}</span>
+              <ArrowRight :size="19" />
+            </template>
+          </button>
+        </form>
+      </section>
+    </div>
   </main>
 </template>

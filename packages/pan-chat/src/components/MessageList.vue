@@ -50,8 +50,8 @@ function animateLatestMessage() {
   >
     <template v-if="messages.length === 0">
       <EmptyState
-        title="开始一段即时对话"
-        description="这里不会显示历史会话。刷新页面后，对话会回到空白状态。"
+        title="你好，我是 Pan。"
+        description="这里是我的聊天空间，想聊什么都可以直接告诉我。"
       />
     </template>
     <template v-else>

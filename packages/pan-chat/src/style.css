@@ -148,13 +148,19 @@ button {
   place-items: center;
   width: 48px;
   height: 48px;
+  overflow: hidden;
   border: 1px solid rgb(255 255 255 / 78%);
   border-radius: 17px;
-  color: #fff;
-  background: linear-gradient(180deg, #0a84ff, #007aff);
+  background: rgb(255 255 255 / 68%);
   box-shadow:
-    0 14px 30px rgb(0 122 255 / 24%),
-    inset 0 1px 0 rgb(255 255 255 / 32%);
+    0 14px 30px rgb(20 20 24 / 14%),
+    inset 0 1px 0 rgb(255 255 255 / 78%);
+}
+
+.app-mark img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .chat-title {
@@ -279,6 +285,11 @@ button {
   backdrop-filter: blur(18px);
 }
 
+.message-row.is-assistant .message-card {
+  width: fit-content;
+  max-width: min(82%, 680px);
+}
+
 .message-row.is-user .message-card {
   width: fit-content;
   max-width: min(82%, 540px);
@@ -309,8 +320,36 @@ button {
   overflow-wrap: anywhere;
 }
 
-.message-text.muted {
+.thinking-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  min-height: 25px;
   color: #6e6e73;
+  font-size: 14px;
+  line-height: 1;
+}
+
+.thinking-label {
+  white-space: nowrap;
+}
+
+.thinking-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 12px;
+}
+
+.thinking-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #007aff;
+  box-shadow: 0 3px 9px rgb(0 122 255 / 26%);
+  opacity: 0.42;
+  transform-origin: center;
+  will-change: transform, opacity;
 }
 
 .empty-state {
@@ -319,41 +358,110 @@ button {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 11px;
+  gap: 14px;
   min-height: 220px;
-  padding: 30px;
+  padding: 24px 30px;
   color: #6e6e73;
   text-align: center;
 }
 
-.empty-icon {
+.welcome-portrait {
+  position: relative;
   display: grid;
   place-items: center;
-  width: 68px;
-  height: 68px;
-  margin-bottom: 4px;
-  border: 1px solid rgb(255 255 255 / 78%);
-  border-radius: 22px;
-  color: #007aff;
-  background: rgb(255 255 255 / 62%);
+  width: 112px;
+  height: 112px;
+  isolation: isolate;
+}
+
+.welcome-glow {
+  position: absolute;
+  border: 1px solid rgb(0 122 255 / 20%);
+  border-radius: 50%;
+  pointer-events: none;
+  transform-origin: center;
+  will-change: transform, opacity;
+}
+
+.welcome-glow.is-outer {
+  inset: 2px;
   box-shadow:
-    0 14px 30px rgb(20 20 24 / 8%),
-    inset 0 1px 0 rgb(255 255 255 / 86%);
+    0 0 34px rgb(0 122 255 / 17%),
+    inset 0 0 22px rgb(90 200 250 / 10%);
+  opacity: 0.46;
+}
+
+.welcome-glow.is-inner {
+  inset: 14px;
+  border-color: rgb(90 200 250 / 28%);
+  box-shadow:
+    0 0 22px rgb(90 200 250 / 16%),
+    inset 0 0 16px rgb(0 122 255 / 10%);
+  opacity: 0.64;
+}
+
+.welcome-avatar {
+  position: relative;
+  z-index: 1;
+  width: 72px;
+  height: 72px;
+  overflow: hidden;
+  border: 2px solid rgb(255 255 255 / 88%);
+  border-radius: 50%;
+  background: rgb(255 255 255 / 70%);
+  box-shadow:
+    0 14px 32px rgb(20 20 24 / 16%),
+    0 0 0 1px rgb(0 122 255 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 92%);
+  will-change: transform, opacity;
+}
+
+.welcome-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.welcome-copy {
+  display: grid;
+  gap: 5px;
+  justify-items: center;
 }
 
 .empty-title {
   margin: 0;
   color: #1c1c1e;
-  font-size: 18px;
-  font-weight: 760;
-  line-height: 1.4;
+  font-size: 20px;
+  font-weight: 780;
+  line-height: 1.35;
+  will-change: transform, opacity;
 }
 
 .empty-desc {
-  max-width: 360px;
+  max-width: 380px;
   margin: 0;
-  font-size: 14px;
+  color: #636366;
+  font-size: 15px;
+  font-weight: 520;
   line-height: 1.7;
+  will-change: transform, opacity;
+}
+
+.welcome-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 10px;
+}
+
+.welcome-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #007aff;
+  box-shadow: 0 3px 10px rgb(0 122 255 / 30%);
+  opacity: 0.56;
+  will-change: transform, opacity;
 }
 
 .empty-action {
@@ -384,24 +492,43 @@ button {
 
 .composer {
   display: grid;
-  grid-template-columns: 1fr 48px;
-  gap: 10px;
-  padding: 14px clamp(16px, 4vw, 56px) calc(16px + env(safe-area-inset-bottom));
-  border-top: 1px solid rgb(60 60 67 / 10%);
-  background: rgb(255 255 255 / 42%);
-  backdrop-filter: blur(24px);
+  grid-template-columns: minmax(0, 1fr) 42px;
+  align-items: end;
+  gap: 8px;
+  margin: 0 clamp(16px, 4vw, 56px) calc(16px + env(safe-area-inset-bottom));
+  padding: 8px;
+  border: 1px solid rgb(255 255 255 / 64%);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 56%);
+  box-shadow:
+    0 16px 38px rgb(20 20 24 / 11%),
+    inset 0 1px 0 rgb(255 255 255 / 84%);
+  backdrop-filter: blur(28px) saturate(135%);
+  transition:
+    border-color 0.22s ease,
+    background-color 0.22s ease,
+    box-shadow 0.22s ease;
+}
+
+.composer:focus-within {
+  border-color: rgb(0 122 255 / 28%);
+  background: rgb(255 255 255 / 68%);
+  box-shadow:
+    0 18px 42px rgb(20 20 24 / 12%),
+    0 0 0 3px rgb(0 122 255 / 9%),
+    inset 0 1px 0 rgb(255 255 255 / 92%);
 }
 
 .composer-input-wrap {
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 2px;
   min-width: 0;
 }
 
 .composer-hint {
   display: block;
-  padding: 0 14px;
+  padding: 0 10px 4px;
   font-size: 12px;
   font-weight: 600;
   line-height: 1.4;
@@ -417,23 +544,18 @@ button {
 
 .composer textarea {
   width: 100%;
-  min-height: 48px;
+  min-height: 42px;
   max-height: 160px;
   resize: none;
-  border: 1px solid rgb(255 255 255 / 82%);
-  border-radius: 999px;
-  padding: 13px 16px;
+  border: 0;
+  border-radius: 16px;
+  padding: 10px 10px 9px;
   color: #1c1c1e;
   outline: none;
-  background: rgb(255 255 255 / 82%);
-  box-shadow:
-    0 10px 24px rgb(20 20 24 / 8%),
-    inset 0 1px 0 rgb(255 255 255 / 92%);
+  background: transparent;
+  box-shadow: none;
+  font-size: 16px;
   line-height: 1.55;
-  transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease,
-    background-color 0.2s ease;
 }
 
 .composer textarea::placeholder {
@@ -441,46 +563,52 @@ button {
 }
 
 .composer textarea:focus {
-  border-color: rgb(0 122 255 / 45%);
-  background: #fff;
-  box-shadow:
-    0 12px 28px rgb(0 122 255 / 12%),
-    0 0 0 4px rgb(0 122 255 / 12%),
-    inset 0 1px 0 rgb(255 255 255 / 92%);
+  background: transparent;
+  box-shadow: none;
 }
 
 .composer button {
   display: grid;
   place-items: center;
-  width: 48px;
-  height: 48px;
+  align-self: end;
+  width: 42px;
+  height: 42px;
   border-radius: 999px;
-  color: #fff;
-  background: linear-gradient(180deg, #0a84ff, #007aff);
+  color: rgb(60 60 67 / 42%);
+  background: rgb(120 130 145 / 13%);
   box-shadow:
-    0 14px 28px rgb(0 122 255 / 24%),
-    inset 0 1px 0 rgb(255 255 255 / 32%);
+    inset 0 1px 0 rgb(255 255 255 / 72%),
+    0 6px 16px rgb(20 20 24 / 6%);
   transition:
-    opacity 0.24s ease,
+    color 0.24s ease,
+    background-color 0.24s ease,
     transform 0.24s ease,
     box-shadow 0.24s ease;
   will-change: transform;
 }
 
-.composer button:not(:disabled):hover {
-  transform: translateY(-2px);
+.composer button.is-ready {
+  color: #fff;
+  background: linear-gradient(180deg, #2196ff, #007aff);
   box-shadow:
-    0 18px 34px rgb(0 122 255 / 28%),
-    inset 0 1px 0 rgb(255 255 255 / 32%);
+    0 10px 22px rgb(0 122 255 / 22%),
+    inset 0 1px 0 rgb(255 255 255 / 34%);
 }
 
-.composer button:not(:disabled):active {
+.composer button.is-ready:not(:disabled):hover {
+  transform: translateY(-2px);
+  box-shadow:
+    0 13px 26px rgb(0 122 255 / 26%),
+    inset 0 1px 0 rgb(255 255 255 / 38%);
+}
+
+.composer button.is-ready:not(:disabled):active {
   transform: scale(0.94);
 }
 
 .composer button:disabled {
-  cursor: not-allowed;
-  opacity: 0.42;
+  cursor: default;
+  opacity: 1;
   transform: none;
 }
 
@@ -588,9 +716,43 @@ button {
     max-width: min(88%, 540px);
   }
 
+  .message-row.is-assistant .message-card {
+    max-width: 88%;
+  }
+
   .message-text {
     font-size: 15px;
     line-height: 1.66;
+  }
+
+  .empty-state {
+    gap: 11px;
+    min-height: 210px;
+    padding: 18px 22px;
+  }
+
+  .welcome-portrait {
+    width: 96px;
+    height: 96px;
+  }
+
+  .welcome-glow.is-inner {
+    inset: 12px;
+  }
+
+  .welcome-avatar {
+    width: 64px;
+    height: 64px;
+  }
+
+  .empty-title {
+    font-size: 19px;
+  }
+
+  .empty-desc {
+    max-width: 310px;
+    font-size: 14px;
+    line-height: 1.65;
   }
 
   .chat-error {
@@ -603,24 +765,30 @@ button {
     bottom: calc(10px + env(safe-area-inset-bottom) + var(--keyboard-offset, 0px));
     left: max(12px, env(safe-area-inset-left));
     z-index: 20;
-    grid-template-columns: 1fr 46px;
-    padding: 10px;
-    border: 1px solid rgb(255 255 255 / 76%);
-    border-radius: 28px;
-    background: rgb(255 255 255 / 70%);
+    grid-template-columns: minmax(0, 1fr) 40px;
+    gap: 7px;
+    margin: 0;
+    padding: 7px;
+    border-color: rgb(255 255 255 / 68%);
+    border-radius: 23px;
+    background: rgb(255 255 255 / 62%);
     box-shadow:
-      0 18px 44px rgb(20 20 24 / 16%),
-      inset 0 1px 0 rgb(255 255 255 / 90%);
-    transition: bottom 0.18s ease;
+      0 16px 38px rgb(20 20 24 / 14%),
+      inset 0 1px 0 rgb(255 255 255 / 88%);
+    transition:
+      bottom 0.18s ease,
+      border-color 0.22s ease,
+      background-color 0.22s ease,
+      box-shadow 0.22s ease;
   }
 
-  .composer textarea,
-  .composer button {
-    min-height: 46px;
+  .composer textarea {
+    min-height: 40px;
+    padding: 8px 9px 7px;
   }
 
   .composer button {
-    width: 46px;
-    height: 46px;
+    width: 40px;
+    height: 40px;
   }
 }

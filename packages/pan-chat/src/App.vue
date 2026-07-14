@@ -81,13 +81,13 @@ onUnmounted(() => {
 
 <template>
   <main ref="pageRef" class="chat-page">
-    <section class="chat-shell" aria-label="和 Pan 聊天">
+    <section class="chat-shell" aria-label="和陶攀聊天">
       <header class="chat-header">
         <div class="app-mark" aria-hidden="true">
           <img :src="avatarUrl" alt="" />
         </div>
         <div class="chat-title">
-          <p>Pan's chat</p>
+          <p>陶攀</p>
         </div>
         <div class="header-actions">
           <button

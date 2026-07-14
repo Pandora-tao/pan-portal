@@ -50,7 +50,7 @@ function animateLatestMessage() {
   >
     <template v-if="messages.length === 0">
       <EmptyState
-        title="你好，我是 Pan。"
+        title="你好，我是陶攀。"
         description="这里是我的聊天空间，想聊什么都可以直接告诉我。"
       />
     </template>

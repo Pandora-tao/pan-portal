@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { gsap } from 'gsap'
-import { Home, Square, Trash2 } from 'lucide-vue-next'
+import { CloudOff, Home, LoaderCircle, Square, Trash2 } from 'lucide-vue-next'
 import avatarUrl from '../../portal/src/assets/pan-avatar.png'
 import ChatInput from './components/ChatInput.vue'
 import MessageList from './components/MessageList.vue'
@@ -13,10 +13,13 @@ const portalHref = import.meta.env.VITE_PORTAL_ROUTE ?? '/'
 const {
   messages,
   sending,
-  streaming,
+  clearing,
+  loading,
+  isGuest,
   error,
-  streamError,
-  sendMessageStream,
+  guestNotice,
+  loginHref,
+  sendMessage,
   stopGenerating,
   clearMessages,
 } = useChat()
@@ -26,7 +29,7 @@ let ctx: ReturnType<typeof gsap.context> | null = null
 const hasMessages = computed(() => messages.value.length > 0)
 
 function handleSend(content: string) {
-  void sendMessageStream(content)
+  void sendMessage(content)
 }
 
 function updateKeyboardOffset() {
@@ -88,7 +91,7 @@ onUnmounted(() => {
         </div>
         <div class="header-actions">
           <button
-            v-if="sending || streaming"
+            v-if="sending"
             type="button"
             class="icon-action"
             aria-label="停止生成"
@@ -98,12 +101,13 @@ onUnmounted(() => {
             <Square :size="15" />
           </button>
           <button
-            v-if="hasMessages"
+            v-if="hasMessages && !sending"
             type="button"
             class="icon-action"
             aria-label="清空当前对话"
             title="清空当前对话"
-            @click="clearMessages"
+            :disabled="clearing"
+            @click="void clearMessages()"
           >
             <Trash2 :size="15" />
           </button>
@@ -115,14 +119,25 @@ onUnmounted(() => {
 
       <div class="chat-body">
         <section class="chat-main" aria-label="当前聊天">
-          <MessageList :messages="messages" />
+          <div v-if="isGuest && !loading" class="chat-mode-notice" role="status">
+            <CloudOff :size="15" aria-hidden="true" />
+            <span>{{ guestNotice }}</span>
+            <a :href="loginHref">登录</a>
+          </div>
 
-          <p v-if="error || streamError" class="chat-error" role="alert">
-            {{ error || streamError }}
+          <div v-if="loading" class="chat-loading" role="status">
+            <LoaderCircle :size="20" class="spin" />
+            <span>正在读取对话...</span>
+          </div>
+          <MessageList v-else :messages="messages" />
+
+          <p v-if="error" class="chat-error" role="alert">
+            {{ error }}
           </p>
 
           <ChatInput
-            :sending="sending || streaming"
+            :sending="sending"
+            :disabled="loading || clearing"
             @send="handleSend"
           />
         </section>

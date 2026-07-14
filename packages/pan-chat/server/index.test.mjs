@@ -4,23 +4,30 @@ import { createServer } from 'node:http'
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 
-test('chat api proxies requests to the configured backend', async () => {
+test('chat server proxies guest, auth, and persistent chat requests with cookies', async () => {
   const port = 18000 + Math.floor(Math.random() * 10000)
   const backendPort = 28000 + Math.floor(Math.random() * 10000)
   const forwardedRequests = []
   const backend = createServer(async (request, response) => {
     const body = await readRequestBody(request)
-
     forwardedRequests.push({
       method: request.method,
       url: request.url,
-      origin: request.headers.origin,
-      visitorId: request.headers['x-visitor-id'],
+      cookie: request.headers.cookie,
       body,
     })
 
+    if (request.url === '/api/auth/login') {
+      response.writeHead(200, {
+        'Content-Type': 'application/json; charset=utf-8',
+        'Set-Cookie': 'pan_session=test-token; Path=/; HttpOnly; SameSite=Strict',
+      })
+      response.end(JSON.stringify({ code: 0, message: 'ok', data: { id: 'user-1' } }))
+      return
+    }
+
     response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
-    response.end(JSON.stringify({ answer: '来自后端的回复' }))
+    response.end(JSON.stringify({ answer: '来自后端的回复', code: 0, message: 'ok', data: null }))
   })
   const env = {
     ...process.env,
@@ -31,13 +38,11 @@ test('chat api proxies requests to the configured backend', async () => {
   }
 
   await listen(backend, backendPort)
-
   const server = spawn(process.execPath, ['server/index.mjs'], {
     cwd: new URL('..', import.meta.url),
     env,
     stdio: ['ignore', 'pipe', 'pipe'],
   })
-
   const output = []
   server.stdout.on('data', (chunk) => output.push(chunk.toString('utf8')))
   server.stderr.on('data', (chunk) => output.push(chunk.toString('utf8')))
@@ -45,31 +50,46 @@ test('chat api proxies requests to the configured backend', async () => {
   try {
     await waitForServer(server, output)
 
-    const response = await fetch(`http://127.0.0.1:${port}/chat/api/chat`, {
+    const guestResponse = await fetch(`http://127.0.0.1:${port}/chat/api/chat`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Origin: 'http://192.168.10.2:666',
-        'X-Visitor-Id': 'visitor-test',
-      },
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: '现在能聊吗？' }],
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: '现在能聊吗？' }] }),
     })
-    const data = await response.json()
+    assert.equal(guestResponse.status, 200)
 
-    assert.equal(response.status, 200)
-    assert.equal(data.answer, '来自后端的回复')
-    assert.equal(forwardedRequests.length, 1)
-    assert.deepEqual(forwardedRequests[0], {
+    const loginResponse = await fetch(`http://127.0.0.1:${port}/api/auth/login`, {
       method: 'POST',
-      url: '/chat/api/chat',
-      origin: undefined,
-      visitorId: 'visitor-test',
-      body: JSON.stringify({
-        messages: [{ role: 'user', content: '现在能聊吗？' }],
-      }),
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: 'pan@example.com', password: 'password123' }),
     })
+    assert.match(loginResponse.headers.get('set-cookie') ?? '', /pan_session=test-token/)
+
+    const deleteResponse = await fetch(`http://127.0.0.1:${port}/api/chat/sessions`, {
+      method: 'DELETE',
+      headers: { Cookie: 'pan_session=test-token' },
+    })
+    assert.equal(deleteResponse.status, 200)
+
+    assert.deepEqual(forwardedRequests, [
+      {
+        method: 'POST',
+        url: '/chat/api/chat',
+        cookie: undefined,
+        body: JSON.stringify({ messages: [{ role: 'user', content: '现在能聊吗？' }] }),
+      },
+      {
+        method: 'POST',
+        url: '/api/auth/login',
+        cookie: undefined,
+        body: JSON.stringify({ email: 'pan@example.com', password: 'password123' }),
+      },
+      {
+        method: 'DELETE',
+        url: '/api/chat/sessions',
+        cookie: 'pan_session=test-token',
+        body: '',
+      },
+    ])
   } finally {
     server.kill()
     await once(server, 'exit').catch(() => {})
@@ -85,35 +105,21 @@ function listen(server, port) {
 }
 
 function close(server) {
-  return new Promise((resolve) => {
-    server.close(resolve)
-  })
+  return new Promise((resolve) => server.close(resolve))
 }
 
 async function readRequestBody(request) {
   const chunks = []
-
-  for await (const chunk of request) {
-    chunks.push(chunk)
-  }
-
+  for await (const chunk of request) chunks.push(chunk)
   return Buffer.concat(chunks).toString('utf8')
 }
 
 async function waitForServer(server, output) {
   const deadline = Date.now() + 5000
-
   while (Date.now() < deadline) {
-    if (output.some((line) => line.includes('Pan chat is running'))) {
-      return
-    }
-
-    if (server.exitCode !== null) {
-      throw new Error(`Server exited early:\n${output.join('')}`)
-    }
-
+    if (output.some((line) => line.includes('Pan chat is running'))) return
+    if (server.exitCode !== null) throw new Error(`Server exited early:\n${output.join('')}`)
     await new Promise((resolve) => setTimeout(resolve, 50))
   }
-
   throw new Error(`Timed out waiting for server:\n${output.join('')}`)
 }

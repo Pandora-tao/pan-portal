@@ -1,5 +1,0 @@
-export const PAN_CHAT_VISITOR_ID_KEY = 'pan-chat-visitor-id'
-export const PAN_CHAT_SESSIONS_KEY = 'pan-chat-sessions'
-export const PAN_CHAT_MESSAGES_KEY = 'pan-chat-messages'
-export const PAN_CHAT_CURRENT_SESSION_ID_KEY = 'pan-chat-current-session-id'
-export const PAN_CHAT_STORAGE_VERSION_KEY = 'pan-chat-storage-version'

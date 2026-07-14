@@ -1,5 +1,14 @@
-import { getVisitorId } from '../composables/useVisitorId'
-import type { RequestOptions } from './types'
+import type { ApiResult, RequestOptions } from './types'
+
+export class HttpError extends Error {
+  constructor(
+    public readonly status: number,
+    message: string,
+  ) {
+    super(message)
+    this.name = 'HttpError'
+  }
+}
 
 export async function request<T>(url: string, options: RequestOptions = {}): Promise<T> {
   const headers = new Headers(options.headers)
@@ -8,13 +17,12 @@ export async function request<T>(url: string, options: RequestOptions = {}): Pro
     headers.set('Content-Type', 'application/json')
   }
 
-  headers.set('X-Visitor-Id', getVisitorId())
-
   let response: Response
 
   try {
     response = await fetch(url, {
       ...options,
+      credentials: 'include',
       headers,
     })
   } catch (err) {
@@ -28,8 +36,7 @@ export async function request<T>(url: string, options: RequestOptions = {}): Pro
   }
 
   if (!response.ok) {
-    const statusText = getHttpStatusMessage(response.status)
-    throw new Error(statusText)
+    throw new HttpError(response.status, await getResponseError(response))
   }
 
   if (options.skipJsonParse) {
@@ -41,6 +48,28 @@ export async function request<T>(url: string, options: RequestOptions = {}): Pro
   } catch {
     throw new Error('服务器响应格式异常，请稍后再试。')
   }
+}
+
+export async function apiRequest<T>(url: string, options: RequestOptions = {}): Promise<T> {
+  const result = await request<ApiResult<T>>(url, options)
+  return result.data
+}
+
+export function isUnauthorizedError(error: unknown): error is HttpError {
+  return error instanceof HttpError && error.status === 401
+}
+
+async function getResponseError(response: Response): Promise<string> {
+  try {
+    const result = (await response.json()) as Partial<ApiResult<unknown>>
+    if (typeof result.message === 'string' && result.message.trim()) {
+      return result.message
+    }
+  } catch {
+    // Use the stable status fallback below for non-JSON responses.
+  }
+
+  return getHttpStatusMessage(response.status)
 }
 
 function getHttpStatusMessage(status: number): string {

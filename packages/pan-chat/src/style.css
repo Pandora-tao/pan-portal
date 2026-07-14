@@ -235,9 +235,55 @@ button {
 
 .chat-main {
   display: grid;
-  grid-template-rows: 1fr auto auto;
+  grid-template-rows: auto 1fr auto auto;
   min-width: 0;
   min-height: 0;
+}
+
+.chat-mode-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px clamp(16px, 4vw, 56px) 0;
+  padding: 9px 12px;
+  border: 1px solid rgb(0 122 255 / 12%);
+  border-radius: 14px;
+  color: #55555a;
+  background: rgb(255 255 255 / 56%);
+  font-size: 12px;
+  line-height: 1.5;
+  backdrop-filter: blur(16px);
+}
+
+.chat-mode-notice svg {
+  flex: 0 0 auto;
+  color: #007aff;
+}
+
+.chat-mode-notice span {
+  min-width: 0;
+}
+
+.chat-mode-notice a {
+  flex: 0 0 auto;
+  margin-left: auto;
+  color: #007aff;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.chat-mode-notice a:hover {
+  text-decoration: underline;
+}
+
+.chat-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 220px;
+  color: #6e6e73;
+  font-size: 14px;
 }
 
 .message-list {
@@ -706,6 +752,13 @@ button {
     overscroll-behavior: contain;
     scroll-padding: 16px 12px calc(106px + var(--keyboard-offset, 0px));
     transition: padding-bottom 0.18s ease;
+  }
+
+  .chat-mode-notice {
+    align-items: flex-start;
+    margin: 10px 12px 0;
+    padding: 8px 10px;
+    font-size: 11px;
   }
 
   .message-card {

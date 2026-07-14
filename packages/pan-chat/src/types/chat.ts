@@ -10,10 +10,6 @@ export type ChatRole = 'user' | 'assistant'
  */
 export type MessageStatus = 'pending' | 'streaming' | 'completed' | 'failed' | 'stopped'
 
-/**
- * 当前前端 UI 使用的消息模型。
- * 第一阶段不强制包含 sessionId，因为当前还没有会话管理。
- */
 export interface ChatMessage {
   id: string
   role: ChatRole
@@ -21,12 +17,6 @@ export interface ChatMessage {
   status: MessageStatus
   createdAt: string
   errorMessage?: string
-}
-
-export interface CurrentChatState {
-  messages: ChatMessage[]
-  sending: boolean
-  error: string | null
 }
 
 /**
@@ -46,10 +36,6 @@ export interface LegacyChatResponse {
   answer: string
 }
 
-/**
- * 后续会话阶段再启用的完整会话模型。
- * 不要求在 PC-FE-002 第一阶段立即落地。
- */
 export interface ChatSession {
   id: string
   title: string
@@ -60,12 +46,6 @@ export interface ChatSession {
   titleManuallyEdited?: boolean
 }
 
-export type ChatMessagesMap = Record<string, ChatMessage[]>
-
-/**
- * 后续会话阶段的持久化消息模型。
- * 用于和后端接口对齐，不直接替代第一阶段 ChatMessage。
- */
 export interface PersistedChatMessage extends ChatMessage {
   sessionId: string
   updatedAt?: string
@@ -78,31 +58,14 @@ export interface ChatMessageMetadata {
   durationMs?: number
 }
 
-export interface SendMessagePayload {
-  sessionId: string
-  content: string
-  model?: string
-}
-
-export interface CreateSessionPayload {
-  title?: string
-}
-
-// ─── 新后端接口契约类型（PC-FE-020） ────────────────────────────────
-// 以下类型为后续新后端接口预留，当前阶段不直接调用。
-
-/** PATCH /api/chat/sessions/{sessionId} 请求体 */
-export interface UpdateSessionPayload {
-  title: string
-}
-
-/** POST /api/chat/sessions/{sessionId}/messages 响应体 data */
 export interface SendMessageResponse {
-  userMessage: ChatMessage
-  assistantMessage: ChatMessage
+  userMessage: PersistedChatMessage
+  assistantMessage: PersistedChatMessage
 }
 
-/** POST /api/chat/messages/{messageId}/regenerate 请求体 */
-export interface RegenerateMessageRequest {
-  model?: string
+export interface UserInfo {
+  id: string
+  email: string
+  displayName: string
+  createdAt: string
 }

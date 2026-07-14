@@ -12,7 +12,6 @@ const basePath = normalizeBasePath(process.env.CHAT_BASE_PATH ?? '/chat/')
 const apiPath = `${basePath}api/chat`
 const distDir = join(packageRoot, 'dist')
 const backendOrigin = normalizeBackendOrigin(process.env.PAN_CHAT_BACKEND_URL ?? 'http://localhost:8080')
-const backendChatPath = '/chat/api/chat'
 
 const mimeTypes = new Map([
   ['.css', 'text/css; charset=utf-8'],
@@ -30,8 +29,8 @@ const server = createServer(async (request, response) => {
   try {
     const requestUrl = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`)
 
-    if (request.method === 'POST' && (requestUrl.pathname === apiPath || requestUrl.pathname === '/api/chat')) {
-      await proxyChatRequest(request, response)
+    if (isBackendApiPath(requestUrl.pathname)) {
+      await proxyApiRequest(request, response, `${requestUrl.pathname}${requestUrl.search}`)
       return
     }
 
@@ -67,11 +66,12 @@ server.listen(port, host, () => {
   console.log(`Pan chat is running at http://localhost:${port}${basePath}`)
 })
 
-async function proxyChatRequest(request, response) {
+async function proxyApiRequest(request, response, backendPath) {
   try {
-    const requestBody = await readRequestBody(request)
-    const backendResponse = await fetch(new URL(backendChatPath, backendOrigin), {
-      method: 'POST',
+    const hasRequestBody = request.method !== 'GET' && request.method !== 'HEAD'
+    const requestBody = hasRequestBody ? await readRequestBody(request) : undefined
+    const backendResponse = await fetch(new URL(backendPath, backendOrigin), {
+      method: request.method,
       headers: getForwardHeaders(request),
       body: requestBody,
     })
@@ -80,9 +80,19 @@ async function proxyChatRequest(request, response) {
     response.writeHead(backendResponse.status, getResponseHeaders(backendResponse))
     response.end(responseBody)
   } catch (error) {
-    console.error('Failed to proxy chat request:', error)
+    console.error('Failed to proxy backend request:', error)
     sendJson(response, 502, { error: '后端聊天服务暂时不可用，请稍后再试。' })
   }
+}
+
+function isBackendApiPath(pathname) {
+  return (
+    pathname === apiPath ||
+    pathname === '/api/me' ||
+    pathname.startsWith('/api/auth/') ||
+    pathname === '/api/chat/sessions' ||
+    pathname.startsWith('/api/chat/sessions/')
+  )
 }
 
 async function readRequestBody(request) {
@@ -154,7 +164,7 @@ function getForwardHeaders(request) {
     headers.set(name, Array.isArray(value) ? value.join(', ') : value)
   }
 
-  if (!headers.has('content-type')) {
+  if (request.method !== 'GET' && request.method !== 'HEAD' && !headers.has('content-type')) {
     headers.set('content-type', 'application/json')
   }
 
@@ -162,11 +172,18 @@ function getForwardHeaders(request) {
 }
 
 function getResponseHeaders(backendResponse) {
-  const contentType = backendResponse.headers.get('content-type') ?? 'application/json; charset=utf-8'
-
-  return {
-    'Content-Type': contentType,
+  const headers = {
+    'Content-Type': backendResponse.headers.get('content-type') ?? 'application/json; charset=utf-8',
   }
+
+  const setCookies = backendResponse.headers.getSetCookie?.() ?? []
+  if (setCookies.length > 0) {
+    headers['Set-Cookie'] = setCookies
+  } else if (backendResponse.headers.has('set-cookie')) {
+    headers['Set-Cookie'] = backendResponse.headers.get('set-cookie')
+  }
+
+  return headers
 }
 
 function sendJson(response, statusCode, data) {

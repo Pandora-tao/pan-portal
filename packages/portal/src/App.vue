@@ -36,6 +36,7 @@ const authMode = ref<'login' | 'register'>('login')
 const isAuthOpen = ref(false)
 const isAuthSubmitting = ref(false)
 const isSessionLoading = ref(true)
+const pendingRoute = ref<string | null>(null)
 const showPassword = ref(false)
 const authError = ref('')
 const currentUser = ref<UserInfo | null>(null)
@@ -61,8 +62,9 @@ let rebuildTimer: number | undefined
 const authTitle = computed(() => (authMode.value === 'login' ? '欢迎回来' : '创建账户'))
 const authSubmitText = computed(() => (authMode.value === 'login' ? '登录' : '注册并登录'))
 
-function openAuth(mode: 'login' | 'register' = 'login') {
+function openAuth(mode: 'login' | 'register' = 'login', nextRoute: string | null = null) {
   authMode.value = mode
+  pendingRoute.value = nextRoute
   authError.value = ''
   showPassword.value = false
   isAuthOpen.value = true
@@ -73,6 +75,8 @@ function closeAuth() {
   if (!isAuthSubmitting.value) {
     isAuthOpen.value = false
     authError.value = ''
+    pendingRoute.value = null
+    clearAuthQuery()
   }
 }
 
@@ -118,11 +122,32 @@ async function submitAuth() {
     authForm.password = ''
     authForm.confirmPassword = ''
     isAuthOpen.value = false
+    const nextRoute = pendingRoute.value
+    pendingRoute.value = null
+    if (nextRoute) {
+      window.location.assign(nextRoute)
+    }
   } catch (error) {
     authError.value = error instanceof Error ? error.message : '操作失败，请稍后再试'
   } finally {
     isAuthSubmitting.value = false
   }
+}
+
+function getRequestedNextRoute(): string | null {
+  const params = new URLSearchParams(window.location.search)
+  const nextRoute = params.get('next')
+  return nextRoute === chatRoute && nextRoute.startsWith('/') && !nextRoute.startsWith('//')
+    ? nextRoute
+    : null
+}
+
+function clearAuthQuery() {
+  const url = new URL(window.location.href)
+  if (!url.searchParams.has('login') && !url.searchParams.has('next')) return
+  url.searchParams.delete('login')
+  url.searchParams.delete('next')
+  window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
 }
 
 async function signOut() {
@@ -322,9 +347,18 @@ async function setupPhysics() {
 
 onMounted(() => {
   setupPhysics()
+  const requestedNextRoute = getRequestedNextRoute()
+  const shouldOpenAuth = new URLSearchParams(window.location.search).get('login') === '1'
   getCurrentUser()
     .then((user) => {
       currentUser.value = user
+      if (requestedNextRoute && user) {
+        window.location.assign(requestedNextRoute)
+        return
+      }
+      if (!user && (shouldOpenAuth || requestedNextRoute)) {
+        openAuth('login', requestedNextRoute)
+      }
     })
     .catch(() => {
       currentUser.value = null

@@ -5,6 +5,7 @@ import type { ChatMessage } from '../types/chat'
 
 const props = defineProps<{
   message: ChatMessage
+  grouped?: boolean
 }>()
 
 const rowRef = ref<HTMLElement | null>(null)
@@ -63,7 +64,11 @@ onUnmounted(stopThinkingAnimation)
 </script>
 
 <template>
-  <article ref="rowRef" class="message-row" :class="[`is-${message.role}`, `is-${message.status}`]">
+  <article
+    ref="rowRef"
+    class="message-row"
+    :class="[`is-${message.role}`, `is-${message.status}`, { 'is-grouped': grouped }]"
+  >
     <div class="message-card">
       <div
         v-if="message.status === 'pending'"

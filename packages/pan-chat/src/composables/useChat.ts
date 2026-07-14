@@ -10,6 +10,7 @@ import {
 } from '../api/chatPersistence'
 import { isUnauthorizedError } from '../api/request'
 import type { ChatMessage, PersistedChatMessage } from '../types/chat'
+import { normalizeAssistantContents } from '../utils/assistantMessages'
 import { createId } from '../utils/id'
 import { isEmptyMessage, isMessageTooLong, normalizeMessageContent } from '../utils/text'
 
@@ -122,7 +123,16 @@ export function useChat() {
       .filter((message) => message.status === 'completed')
       .map(({ role, content }) => ({ role, content }))
     const response = await sendLegacyChat({ messages: legacyMessages }, signal)
-    updateMessage(assistantId, { content: response.answer, status: 'completed' })
+    const timestamp = Date.now()
+    const assistantMessages = normalizeAssistantContents(response.answers, response.answer)
+      .map((content, index) => ({
+        id: index === 0 ? assistantId : createId('msg'),
+        role: 'assistant' as const,
+        content,
+        status: 'completed' as const,
+        createdAt: new Date(timestamp + index).toISOString(),
+      }))
+    replaceMessage(assistantId, assistantMessages)
   }
 
   async function sendAccountMessage(
@@ -136,11 +146,22 @@ export function useChat() {
     }
 
     const response = await sendSessionMessage(currentSessionId.value, content, signal)
-    messages.value = messages.value.map((message) => {
-      if (message.id === temporaryUserId) return toChatMessage(response.userMessage)
-      if (message.id === temporaryAssistantId) return toChatMessage(response.assistantMessage)
-      return message
-    })
+    const assistantMessages = response.assistantMessages?.length
+      ? response.assistantMessages
+      : response.assistantMessage
+        ? [response.assistantMessage]
+        : []
+
+    if (assistantMessages.length === 0) {
+      throw new Error('回复内容为空，请重试。')
+    }
+
+    replacePersistedExchange(
+      temporaryUserId,
+      temporaryAssistantId,
+      response.userMessage,
+      assistantMessages,
+    )
   }
 
   function stopGenerating() {
@@ -204,6 +225,28 @@ export function useChat() {
     messages.value = messages.value.map((message) =>
       message.id === messageId ? { ...message, ...patch } : message,
     )
+  }
+
+  function replaceMessage(messageId: string, replacements: ChatMessage[]) {
+    messages.value = messages.value.flatMap((message) =>
+      message.id === messageId ? replacements : [message],
+    )
+  }
+
+  function replacePersistedExchange(
+    temporaryUserId: string,
+    temporaryAssistantId: string,
+    userMessage: PersistedChatMessage,
+    assistantMessages: PersistedChatMessage[],
+  ) {
+    const persistedUserMessage = toChatMessage(userMessage)
+    const persistedAssistantMessages = assistantMessages.map(toChatMessage)
+
+    messages.value = messages.value.flatMap((message) => {
+      if (message.id === temporaryUserId) return [persistedUserMessage]
+      if (message.id === temporaryAssistantId) return persistedAssistantMessages
+      return [message]
+    })
   }
 
   function toChatMessage(message: PersistedChatMessage): ChatMessage {

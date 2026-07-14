@@ -34,6 +34,7 @@ export interface LegacyChatRequest {
 
 export interface LegacyChatResponse {
   answer: string
+  answers?: string[]
 }
 
 export interface ChatSession {
@@ -60,7 +61,8 @@ export interface ChatMessageMetadata {
 
 export interface SendMessageResponse {
   userMessage: PersistedChatMessage
-  assistantMessage: PersistedChatMessage
+  assistantMessage?: PersistedChatMessage
+  assistantMessages?: PersistedChatMessage[]
 }
 
 export interface UserInfo {

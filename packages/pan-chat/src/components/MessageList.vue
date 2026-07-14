@@ -56,9 +56,10 @@ function animateLatestMessage() {
     </template>
     <template v-else>
       <MessageItem
-        v-for="message in messages"
+        v-for="(message, index) in messages"
         :key="message.id"
         :message="message"
+        :grouped="index > 0 && message.role === 'assistant' && messages[index - 1]?.role === 'assistant'"
       />
     </template>
   </section>

@@ -321,6 +321,10 @@ button {
   justify-content: flex-end;
 }
 
+.message-row.is-assistant.is-grouped {
+  margin-top: -8px;
+}
+
 .message-card {
   position: relative;
   width: min(100%, 680px);

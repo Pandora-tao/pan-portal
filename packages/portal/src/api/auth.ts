@@ -42,6 +42,13 @@ export async function logout(): Promise<void> {
   await authRequest<void>('/api/auth/logout', { method: 'POST' })
 }
 
+export async function completePasswordReset(token: string, password: string): Promise<void> {
+  await authRequest<void>('/api/auth/password-reset/complete', {
+    method: 'POST',
+    body: JSON.stringify({ token, password }),
+  })
+}
+
 export async function getCurrentUser(): Promise<UserInfo | null> {
   const response = await fetch('/api/me', { credentials: 'include' })
   if (response.status === 401) {

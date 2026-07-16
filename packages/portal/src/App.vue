@@ -3,7 +3,7 @@ import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, type Com
 import * as Matter from 'matter-js'
 import { ArrowRight, Eye, EyeOff, LoaderCircle, LogOut, Sparkles, UserRound, X } from 'lucide-vue-next'
 import avatarUrl from './assets/pan-avatar.png'
-import { getCurrentUser, login, logout, register, type UserInfo } from './api/auth'
+import { completePasswordReset, getCurrentUser, login, logout, register, type UserInfo } from './api/auth'
 import DraggableDecoration from './draggable-decorations/DraggableDecoration.vue'
 import {
   createDecorationStyles,
@@ -40,6 +40,12 @@ const pendingRoute = ref<string | null>(null)
 const showPassword = ref(false)
 const authError = ref('')
 const currentUser = ref<UserInfo | null>(null)
+const isResetOpen = ref(false)
+const isResetSubmitting = ref(false)
+const resetToken = ref('')
+const resetError = ref('')
+const resetSuccess = ref(false)
+const resetForm = reactive({ password: '', confirmPassword: '' })
 const authForm = reactive({
   displayName: '',
   realName: '',
@@ -158,6 +164,38 @@ async function signOut() {
   } finally {
     currentUser.value = null
   }
+}
+
+async function submitPasswordReset() {
+  if (resetForm.password.length < 8) {
+    resetError.value = '密码至少需要 8 个字符'
+    return
+  }
+  if (resetForm.password !== resetForm.confirmPassword) {
+    resetError.value = '两次输入的密码不一致'
+    return
+  }
+  isResetSubmitting.value = true
+  resetError.value = ''
+  try {
+    await completePasswordReset(resetToken.value, resetForm.password)
+    resetSuccess.value = true
+    resetForm.password = ''
+    resetForm.confirmPassword = ''
+    const url = new URL(window.location.href)
+    url.searchParams.delete('reset')
+    window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
+  } catch (error) {
+    resetError.value = error instanceof Error ? error.message : '密码重置失败'
+  } finally {
+    isResetSubmitting.value = false
+  }
+}
+
+function finishPasswordReset() {
+  isResetOpen.value = false
+  resetSuccess.value = false
+  openAuth('login')
 }
 
 function handleEscape(event: KeyboardEvent) {
@@ -349,6 +387,11 @@ async function setupPhysics() {
 
 onMounted(() => {
   setupPhysics()
+  const reset = new URLSearchParams(window.location.search).get('reset')
+  if (reset) {
+    resetToken.value = reset
+    isResetOpen.value = true
+  }
   const requestedNextRoute = getRequestedNextRoute()
   const shouldOpenAuth = new URLSearchParams(window.location.search).get('login') === '1'
   getCurrentUser()
@@ -631,6 +674,33 @@ onBeforeUnmount(() => {
               <span>{{ authSubmitText }}</span>
               <ArrowRight :size="19" />
             </template>
+          </button>
+        </form>
+      </section>
+    </div>
+
+    <div v-if="isResetOpen" class="auth-overlay">
+      <section class="auth-card reset-card" role="dialog" aria-modal="true" aria-labelledby="reset-title">
+        <span class="auth-staple" aria-hidden="true"></span>
+        <header class="auth-heading">
+          <span class="auth-folio">02</span>
+          <div>
+            <h2 id="reset-title">重置密码</h2>
+            <p>{{ resetSuccess ? '密码已更新，旧登录会话已经失效。' : '设置一个新的账户密码。' }}</p>
+          </div>
+        </header>
+        <div v-if="resetSuccess" class="auth-form">
+          <button type="button" class="auth-submit" @click="finishPasswordReset">
+            <span>返回登录</span><ArrowRight :size="19" />
+          </button>
+        </div>
+        <form v-else class="auth-form" @submit.prevent="submitPasswordReset">
+          <label class="auth-field"><span>新密码</span><input v-model="resetForm.password" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="至少 8 个字符" /></label>
+          <label class="auth-field"><span>确认新密码</span><input v-model="resetForm.confirmPassword" type="password" autocomplete="new-password" minlength="8" maxlength="128" placeholder="再次输入新密码" /></label>
+          <p v-if="resetError" class="auth-error" role="alert">{{ resetError }}</p>
+          <button type="submit" class="auth-submit" :disabled="isResetSubmitting">
+            <LoaderCircle v-if="isResetSubmitting" class="is-spinning" :size="19" />
+            <template v-else><span>确认重置</span><ArrowRight :size="19" /></template>
           </button>
         </form>
       </section>

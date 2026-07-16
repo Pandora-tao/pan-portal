@@ -9,12 +9,14 @@
     "dev:portal": "pnpm --filter @dragon-boat/portal dev",
     "dev:lucky-draw": "pnpm --filter @dragon-boat/lucky-draw dev",
     "dev:chat": "pnpm --filter @dragon-boat/pan-chat dev",
+    "dev:admin": "pnpm --filter @dragon-boat/admin dev",
     "dev:all": "pnpm -r --parallel dev",
     "type-check": "pnpm -r type-check",
     "build": "pnpm -r build",
     "preview:portal": "pnpm --filter @dragon-boat/portal preview",
     "preview:lucky-draw": "pnpm --filter @dragon-boat/lucky-draw preview",
-    "preview:chat": "pnpm --filter @dragon-boat/pan-chat preview"
+    "preview:chat": "pnpm --filter @dragon-boat/pan-chat preview",
+    "preview:admin": "pnpm --filter @dragon-boat/admin preview"
   },
   "dependencies": {
     "@fontsource/fraunces": "^5.2.9",
@@ -26,6 +28,7 @@
     "gsap": "^3.15.0",
     "lucide-vue-next": "^1.0.0",
     "matter-js": "^0.20.0",
+    "naive-ui": "^2.44.1",
     "vue": "^3.5.25"
   },
   "devDependencies": {

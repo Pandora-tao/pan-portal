@@ -847,6 +847,10 @@ a {
   animation: auth-card-in 240ms ease-out;
 }
 
+.reset-card {
+  min-height: auto;
+}
+
 .auth-card::after {
   position: absolute;
   right: 56px;

@@ -10,20 +10,6 @@ export interface Quiz {
   options: QuizOption[]
 }
 
-export interface TextPrize {
-  type: 'text'
-  name: string
-}
-
-export interface RedPacketPrize {
-  type: 'red-packet'
-  name: string
-  min: number
-  max: number
-}
-
-export type Prize = TextPrize | RedPacketPrize
-
 export interface PrizeTile {
   id: number
   label: string
@@ -134,35 +120,6 @@ export const advancedQuizzes: Quiz[] = [
       { label: 'C', text: '5060' },
       { label: 'D', text: '5070ti' },
     ],
-  },
-]
-
-export const prizePool: Prize[] = [
-  {
-    type: 'text',
-    name: '一杯奶茶',
-  },
-  {
-    type: 'red-packet',
-    name: '一个红包',
-    min: 2,
-    max: 15,
-  },
-  {
-    type: 'text',
-    name: '陶攀的一个真心话',
-  },
-  {
-    type: 'text',
-    name: '陶攀自罚三杯',
-  },
-  {
-    type: 'text',
-    name: '任意点一首歌陶攀来唱',
-  },
-  {
-    type: 'text',
-    name: '敬请期待',
   },
 ]
 

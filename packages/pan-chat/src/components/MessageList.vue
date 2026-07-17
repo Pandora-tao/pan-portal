@@ -3,11 +3,20 @@ import { nextTick, ref, watch } from 'vue'
 import { gsap } from 'gsap'
 import { useAutoScroll } from '../composables/useAutoScroll'
 import type { ChatMessage } from '../types/chat'
+import type { FeedbackRating } from '../types/chat'
 import EmptyState from './EmptyState.vue'
 import MessageItem from './MessageItem.vue'
 
 const props = defineProps<{
   messages: ChatMessage[]
+  feedbackEnabled?: boolean
+  feedbackSubmittingId?: string | null
+}>()
+
+const emit = defineEmits<{
+  regenerate: [messageId: string]
+  rate: [messageId: string, rating: FeedbackRating]
+  feedback: [messageId: string, categories: string[], comment: string]
 }>()
 
 const messageList = ref<HTMLElement | null>(null)
@@ -60,6 +69,12 @@ function animateLatestMessage() {
         :key="message.id"
         :message="message"
         :grouped="index > 0 && message.role === 'assistant' && messages[index - 1]?.role === 'assistant'"
+        :can-regenerate="message.role === 'assistant' && index === messages.length - 1"
+        :feedback-enabled="feedbackEnabled"
+        :feedback-submitting="feedbackSubmittingId === message.id"
+        @regenerate="emit('regenerate', $event)"
+        @rate="(messageId, rating) => emit('rate', messageId, rating)"
+        @feedback="(messageId, categories, comment) => emit('feedback', messageId, categories, comment)"
       />
     </template>
   </section>

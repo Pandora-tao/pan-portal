@@ -75,10 +75,17 @@ async function proxyApiRequest(request, response, backendPath) {
       headers: getForwardHeaders(request),
       body: requestBody,
     })
-    const responseBody = Buffer.from(await backendResponse.arrayBuffer())
-
     response.writeHead(backendResponse.status, getResponseHeaders(backendResponse))
-    response.end(responseBody)
+    if (!backendResponse.body) {
+      response.end()
+      return
+    }
+
+    for await (const chunk of backendResponse.body) {
+      if (response.destroyed) break
+      response.write(Buffer.from(chunk))
+    }
+    response.end()
   } catch (error) {
     console.error('Failed to proxy backend request:', error)
     sendJson(response, 502, { error: '后端聊天服务暂时不可用，请稍后再试。' })
@@ -88,6 +95,7 @@ async function proxyApiRequest(request, response, backendPath) {
 function isBackendApiPath(pathname) {
   return (
     pathname === apiPath ||
+    pathname.startsWith(`${apiPath}/`) ||
     pathname === '/api/me' ||
     pathname.startsWith('/api/auth/') ||
     pathname === '/api/chat/sessions' ||
@@ -174,6 +182,11 @@ function getForwardHeaders(request) {
 function getResponseHeaders(backendResponse) {
   const headers = {
     'Content-Type': backendResponse.headers.get('content-type') ?? 'application/json; charset=utf-8',
+  }
+
+  for (const name of ['cache-control', 'x-accel-buffering']) {
+    const value = backendResponse.headers.get(name)
+    if (value) headers[name] = value
   }
 
   const setCookies = backendResponse.headers.getSetCookie?.() ?? []

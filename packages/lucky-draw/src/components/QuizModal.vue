@@ -19,6 +19,7 @@ const emit = defineEmits<{
 
 const answer = ref('')
 const error = ref('')
+const isSubmitting = ref(false)
 
 const isChoiceQuiz = computed(() => Boolean(props.quiz.options.length))
 
@@ -38,9 +39,12 @@ const selectOption = (value: string) => {
   answer.value = value
 
   if (isChoiceQuiz.value) {
+    if (isSubmitting.value) return
+    isSubmitting.value = true
     emit('submit', value, (result) => {
       if (result.ok === false) {
         error.value = result.message ?? '答案不对，再试一次。'
+        isSubmitting.value = false
       }
     })
   }
@@ -65,6 +69,7 @@ const selectOption = (value: string) => {
           type="button"
           role="radio"
           :aria-checked="answer === option.label"
+          :disabled="isSubmitting"
           @click="selectOption(option.label)"
         >
           <span class="choice-label">{{ option.label }}</span>

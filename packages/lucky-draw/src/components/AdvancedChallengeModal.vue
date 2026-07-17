@@ -14,6 +14,7 @@ const props = defineProps<{
   answeredCount: number
   totalCount: number
   canNext: boolean
+  submitting?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -52,7 +53,7 @@ const optionClass = (label: string) => ({
             type="button"
             role="radio"
             :aria-checked="result?.selected === option.label"
-            :disabled="Boolean(result)"
+            :disabled="Boolean(result) || submitting"
             @click="$emit('answer', option.label)"
           >
             <span class="choice-label">{{ option.label }}</span>

@@ -1,15 +1,28 @@
 import { computed, onMounted, ref } from 'vue'
-import { sendLegacyChat } from '../api/chat'
+import { streamLegacyChat } from '../api/chat'
 import {
   createSession,
   deleteAllSessions,
   getCurrentUser,
   listMessages,
   listSessions,
-  sendSessionMessage,
+  regenerateSessionMessage,
+  saveMessageFeedback,
+  streamSessionMessage,
 } from '../api/chatPersistence'
 import { isUnauthorizedError } from '../api/request'
-import type { ChatMessage, PersistedChatMessage } from '../types/chat'
+import { SseEventError } from '../api/sse'
+import type {
+  ChatMessage,
+  ChatStreamDeltaEvent,
+  ChatStreamDoneEvent,
+  ChatStreamErrorEvent,
+  ChatStreamStartEvent,
+  FeedbackRating,
+  LegacyChatResponse,
+  MessageFeedbackInput,
+  PersistedChatMessage,
+} from '../types/chat'
 import { normalizeAssistantContents } from '../utils/assistantMessages'
 import { createId } from '../utils/id'
 import { isEmptyMessage, isMessageTooLong, normalizeMessageContent } from '../utils/text'
@@ -25,13 +38,16 @@ export function useChat() {
   const currentSessionId = ref<string | null>(null)
   const sending = ref(false)
   const clearing = ref(false)
+  const feedbackSubmittingId = ref<string | null>(null)
   const error = ref<string | null>(null)
   const guestNotice = ref(GUEST_NOTICE)
   let currentController: AbortController | null = null
+  let currentAssistantId: string | null = null
   let abortedByUser = false
 
   const loading = computed(() => mode.value === 'loading')
   const isGuest = computed(() => mode.value === 'guest')
+  const feedbackEnabled = computed(() => mode.value === 'account')
   const loginHref = computed(() => '/?login=1&next=%2Fchat%2F')
 
   onMounted(initialize)
@@ -81,18 +97,64 @@ export function useChat() {
 
     error.value = null
     const userMessage = createTemporaryMessage('user', content, 'completed')
-    const assistantMessage = createTemporaryMessage('assistant', '正在想怎么回你...', 'pending')
+    const assistantMessage = createTemporaryMessage('assistant', '', 'pending')
     messages.value = [...messages.value, userMessage, assistantMessage]
+    await runGeneration(assistantMessage.id, async (signal) => {
+      if (mode.value === 'account') {
+        await streamAccountMessage(content, userMessage.id, assistantMessage.id, signal)
+      } else {
+        await streamGuestMessage(assistantMessage.id, buildGuestHistory(), signal)
+      }
+    })
+  }
+
+  async function regenerateMessage(messageId: string) {
+    if (sending.value || loading.value) return
+    const targetIndex = messages.value.findIndex((message) => message.id === messageId)
+    if (targetIndex < 0) return
+
+    let generationStartIndex = targetIndex
+    while (generationStartIndex > 0 && messages.value[generationStartIndex - 1]?.role === 'assistant') {
+      generationStartIndex -= 1
+    }
+    const generationTarget = messages.value[generationStartIndex]
+    if (!generationTarget || generationTarget.role !== 'assistant') return
+
+    const history = messages.value.slice(0, generationStartIndex)
+    messages.value = messages.value.filter((_, index) =>
+      index < generationStartIndex || index > targetIndex,
+    )
+    updateMessage(generationTarget.id, {
+      content: '',
+      status: 'pending',
+      errorMessage: undefined,
+      feedback: undefined,
+    })
+
+    await runGeneration(generationTarget.id, async (signal) => {
+      if (mode.value === 'account') {
+        if (!currentSessionId.value) throw new Error('当前对话不存在，请重新发送消息。')
+        await streamAccountRegeneration(generationTarget.id, signal)
+      } else {
+        const legacyHistory = history
+          .filter((message) => message.status === 'completed')
+          .map(({ role, content }) => ({ role, content }))
+        await streamGuestMessage(generationTarget.id, legacyHistory, signal)
+      }
+    })
+  }
+
+  async function runGeneration(
+    assistantId: string,
+    operation: (signal: AbortSignal) => Promise<void>,
+  ) {
     sending.value = true
     abortedByUser = false
+    currentAssistantId = assistantId
     currentController = new AbortController()
 
     try {
-      if (mode.value === 'account') {
-        await sendAccountMessage(content, userMessage.id, assistantMessage.id, currentController.signal)
-      } else {
-        await sendGuestMessage(assistantMessage.id, currentController.signal)
-      }
+      await operation(currentController.signal)
     } catch (caught) {
       if (mode.value === 'account' && isUnauthorizedError(caught)) {
         enterGuestMode(EXPIRED_NOTICE)
@@ -101,67 +163,167 @@ export function useChat() {
       }
 
       if (abortedByUser) {
-        updateMessage(assistantMessage.id, { content: '已停止生成。', status: 'stopped' })
+        if (currentAssistantId) {
+          const partial = messages.value.find((message) => message.id === currentAssistantId)?.content
+          updateMessage(currentAssistantId, {
+            content: partial || '已停止生成。',
+            status: 'stopped',
+          })
+        }
         return
       }
 
+      const streamError = caught instanceof SseEventError
+        ? caught.payload as ChatStreamErrorEvent
+        : null
+      if (streamError?.assistantMessage) {
+        const failedMessage = toChatMessage(streamError.assistantMessage)
+        replaceMessage(currentAssistantId ?? failedMessage.id, [failedMessage])
+        currentAssistantId = streamError.assistantMessage.id
+      }
       const message = caught instanceof Error ? caught.message : '消息发送失败，请稍后再试。'
       error.value = message
-      updateMessage(assistantMessage.id, {
-        content: '消息发送失败，请稍后再试。',
-        status: 'failed',
-        errorMessage: message,
-      })
+      if (currentAssistantId) {
+        const partial = messages.value.find((item) => item.id === currentAssistantId)?.content
+        updateMessage(currentAssistantId, {
+          content: partial || '消息生成失败，请稍后再试。',
+          status: 'failed',
+          errorMessage: message,
+        })
+      }
     } finally {
       sending.value = false
       currentController = null
+      currentAssistantId = null
     }
   }
 
-  async function sendGuestMessage(assistantId: string, signal: AbortSignal) {
-    const legacyMessages = messages.value
-      .filter((message) => message.status === 'completed')
-      .map(({ role, content }) => ({ role, content }))
-    const response = await sendLegacyChat({ messages: legacyMessages }, signal)
-    const timestamp = Date.now()
-    const assistantMessages = normalizeAssistantContents(response.answers, response.answer)
-      .map((content, index) => ({
-        id: index === 0 ? assistantId : createId('msg'),
-        role: 'assistant' as const,
-        content,
-        status: 'completed' as const,
-        createdAt: new Date(timestamp + index).toISOString(),
-      }))
-    replaceMessage(assistantId, assistantMessages)
+  async function streamGuestMessage(
+    assistantId: string,
+    history: Array<{ role: 'user' | 'assistant'; content: string }>,
+    signal: AbortSignal,
+  ) {
+    await streamLegacyChat({ messages: history }, (event, payload) => {
+      if (event === 'delta') {
+        const { delta } = payload as ChatStreamDeltaEvent
+        appendDelta(assistantId, delta)
+      }
+      if (event === 'done') {
+        const response = payload as LegacyChatResponse
+        const timestamp = Date.now()
+        const assistantMessages = normalizeAssistantContents(response.answers, response.answer)
+          .map((content, index) => ({
+            id: index === 0 ? assistantId : createId('msg'),
+            role: 'assistant' as const,
+            content,
+            status: 'completed' as const,
+            createdAt: new Date(timestamp + index).toISOString(),
+          }))
+        replaceMessage(assistantId, assistantMessages)
+      }
+    }, signal)
   }
 
-  async function sendAccountMessage(
+  async function streamAccountMessage(
     content: string,
     temporaryUserId: string,
     temporaryAssistantId: string,
     signal: AbortSignal,
   ) {
-    if (!currentSessionId.value) {
-      currentSessionId.value = (await createSession()).id
+    if (!currentSessionId.value) currentSessionId.value = (await createSession()).id
+    await streamSessionMessage(currentSessionId.value, content, (event, payload) => {
+      handleAccountStreamEvent(event, payload, temporaryUserId, temporaryAssistantId)
+    }, signal)
+  }
+
+  async function streamAccountRegeneration(messageId: string, signal: AbortSignal) {
+    if (!currentSessionId.value) return
+    await regenerateSessionMessage(currentSessionId.value, messageId, (event, payload) => {
+      handleAccountStreamEvent(event, payload, null, messageId)
+    }, signal)
+  }
+
+  function handleAccountStreamEvent(
+    event: string,
+    payload: unknown,
+    temporaryUserId: string | null,
+    temporaryAssistantId: string,
+  ) {
+    if (event === 'start') {
+      const start = payload as ChatStreamStartEvent
+      const assistant = toChatMessage(start.assistantMessage)
+      currentAssistantId = assistant.id
+      messages.value = messages.value.flatMap((message) => {
+        if (temporaryUserId && message.id === temporaryUserId && start.userMessage) {
+          return [toChatMessage(start.userMessage)]
+        }
+        if (message.id === temporaryAssistantId) return [assistant]
+        return [message]
+      })
     }
-
-    const response = await sendSessionMessage(currentSessionId.value, content, signal)
-    const assistantMessages = response.assistantMessages?.length
-      ? response.assistantMessages
-      : response.assistantMessage
-        ? [response.assistantMessage]
-        : []
-
-    if (assistantMessages.length === 0) {
-      throw new Error('回复内容为空，请重试。')
+    if (event === 'delta') {
+      const delta = payload as ChatStreamDeltaEvent
+      appendDelta(delta.messageId ?? currentAssistantId ?? temporaryAssistantId, delta.delta)
     }
+    if (event === 'done') {
+      const done = payload as ChatStreamDoneEvent
+      if (currentAssistantId) {
+        replaceMessage(currentAssistantId, done.assistantMessages.map(toChatMessage))
+      }
+    }
+  }
 
-    replacePersistedExchange(
-      temporaryUserId,
-      temporaryAssistantId,
-      response.userMessage,
-      assistantMessages,
-    )
+  function buildGuestHistory() {
+    return messages.value
+      .filter((message) => message.status === 'completed')
+      .map(({ role, content }) => ({ role, content }))
+  }
+
+  function appendDelta(messageId: string, delta: string) {
+    const current = messages.value.find((message) => message.id === messageId)
+    if (!current) return
+    updateMessage(messageId, { content: current.content + delta, status: 'streaming' })
+  }
+
+  async function rateMessage(messageId: string, rating: FeedbackRating) {
+    await submitFeedback(messageId, { rating })
+  }
+
+  async function submitProblemFeedback(messageId: string, categories: string[], comment: string) {
+    await submitFeedback(messageId, { rating: 'dislike', categories, comment })
+  }
+
+  async function submitFeedback(messageId: string, feedback: MessageFeedbackInput) {
+    if (mode.value !== 'account' || !currentSessionId.value) {
+      error.value = '登录后才能提交评价和问题反馈。'
+      return
+    }
+    if (feedbackSubmittingId.value) return
+
+    const original = messages.value.find((message) => message.id === messageId)?.feedback
+    feedbackSubmittingId.value = messageId
+    error.value = null
+    updateMessage(messageId, {
+      feedback: {
+        rating: feedback.rating,
+        categories: feedback.categories ?? [],
+        comment: feedback.comment,
+      },
+    })
+    try {
+      const saved = await saveMessageFeedback(currentSessionId.value, messageId, feedback)
+      updateMessage(messageId, { feedback: saved.feedback })
+    } catch (caught) {
+      updateMessage(messageId, { feedback: original })
+      if (isUnauthorizedError(caught)) {
+        enterGuestMode(EXPIRED_NOTICE)
+        error.value = '登录状态已失效，反馈未提交。'
+        return
+      }
+      error.value = caught instanceof Error ? caught.message : '反馈提交失败，请稍后再试。'
+    } finally {
+      feedbackSubmittingId.value = null
+    }
   }
 
   function stopGenerating() {
@@ -212,13 +374,7 @@ export function useChat() {
     content: string,
     status: ChatMessage['status'],
   ): ChatMessage {
-    return {
-      id: createId('msg'),
-      role,
-      content,
-      status,
-      createdAt: new Date().toISOString(),
-    }
+    return { id: createId('msg'), role, content, status, createdAt: new Date().toISOString() }
   }
 
   function updateMessage(messageId: string, patch: Partial<ChatMessage>) {
@@ -233,22 +389,6 @@ export function useChat() {
     )
   }
 
-  function replacePersistedExchange(
-    temporaryUserId: string,
-    temporaryAssistantId: string,
-    userMessage: PersistedChatMessage,
-    assistantMessages: PersistedChatMessage[],
-  ) {
-    const persistedUserMessage = toChatMessage(userMessage)
-    const persistedAssistantMessages = assistantMessages.map(toChatMessage)
-
-    messages.value = messages.value.flatMap((message) => {
-      if (message.id === temporaryUserId) return [persistedUserMessage]
-      if (message.id === temporaryAssistantId) return persistedAssistantMessages
-      return [message]
-    })
-  }
-
   function toChatMessage(message: PersistedChatMessage): ChatMessage {
     return {
       id: message.id,
@@ -257,6 +397,7 @@ export function useChat() {
       status: message.status,
       createdAt: message.createdAt,
       errorMessage: message.errorMessage,
+      feedback: message.feedback,
     }
   }
 
@@ -266,10 +407,15 @@ export function useChat() {
     clearing,
     loading,
     isGuest,
+    feedbackEnabled,
+    feedbackSubmittingId,
     error,
     guestNotice,
     loginHref,
     sendMessage,
+    regenerateMessage,
+    rateMessage,
+    submitProblemFeedback,
     stopGenerating,
     clearMessages,
   }

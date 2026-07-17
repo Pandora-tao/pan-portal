@@ -26,6 +26,18 @@ test('chat server proxies guest, auth, and persistent chat requests with cookies
       return
     }
 
+    if (request.url === '/chat/api/chat/stream') {
+      response.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+      })
+      response.write('event: delta\ndata: {"delta":"第一段"}\n\n')
+      setTimeout(() => {
+        response.end('event: done\ndata: {"answer":"第一段第二段"}\n\n')
+      }, 120)
+      return
+    }
+
     response.writeHead(200, { 'Content-Type': 'application/json; charset=utf-8' })
     response.end(JSON.stringify({ answer: '来自后端的回复', code: 0, message: 'ok', data: null }))
   })
@@ -57,6 +69,17 @@ test('chat server proxies guest, auth, and persistent chat requests with cookies
     })
     assert.equal(guestResponse.status, 200)
 
+    const streamResponse = await fetch(`http://127.0.0.1:${port}/chat/api/chat/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ messages: [{ role: 'user', content: '流式回复' }] }),
+    })
+    const streamReader = streamResponse.body.getReader()
+    const firstChunk = await streamReader.read()
+    assert.match(new TextDecoder().decode(firstChunk.value), /第一段/)
+    assert.equal(firstChunk.done, false)
+    await streamReader.cancel()
+
     const loginResponse = await fetch(`http://127.0.0.1:${port}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -76,6 +99,12 @@ test('chat server proxies guest, auth, and persistent chat requests with cookies
         url: '/chat/api/chat',
         cookie: undefined,
         body: JSON.stringify({ messages: [{ role: 'user', content: '现在能聊吗？' }] }),
+      },
+      {
+        method: 'POST',
+        url: '/chat/api/chat/stream',
+        cookie: undefined,
+        body: JSON.stringify({ messages: [{ role: 'user', content: '流式回复' }] }),
       },
       {
         method: 'POST',

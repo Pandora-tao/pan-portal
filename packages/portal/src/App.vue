@@ -145,7 +145,8 @@ async function submitAuth() {
 function getRequestedNextRoute(): string | null {
   const params = new URLSearchParams(window.location.search)
   const nextRoute = params.get('next')
-  return nextRoute === chatRoute && nextRoute.startsWith('/') && !nextRoute.startsWith('//')
+  const allowedRoutes = new Set([chatRoute, luckyDrawRoute])
+  return nextRoute && allowedRoutes.has(nextRoute) && nextRoute.startsWith('/') && !nextRoute.startsWith('//')
     ? nextRoute
     : null
 }

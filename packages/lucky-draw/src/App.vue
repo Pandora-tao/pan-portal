@@ -1,17 +1,19 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import { Home, RefreshCcw } from 'lucide-vue-next'
+import { computed, onMounted, ref } from 'vue'
+import { AlertCircle, Home, LoaderCircle, Trophy } from 'lucide-vue-next'
 import AdvancedChallengeModal, { type AdvancedAnswerResult } from './components/AdvancedChallengeModal.vue'
 import CorrectAnswerAnimation from './components/CorrectAnswerAnimation.vue'
 import DrawStage from './components/DrawStage.vue'
 import HeroSection from './components/HeroSection.vue'
 import PrizeModal from './components/PrizeModal.vue'
+import PrizeHistoryModal from './components/PrizeHistoryModal.vue'
 import QuizModal from './components/QuizModal.vue'
 import WrongAnswerAnimation from './components/WrongAnswerAnimation.vue'
 import { advancedQuizzes, basicQuizzes, title, type Quiz } from './data/activity'
 import { useLuckyDraw } from './composables/useLuckyDraw'
+import type { DrawRecord } from './composables/drawState'
 import { usePrizeCelebration } from './composables/usePrizeCelebration'
-import { normalizeAnswer } from './utils/answer'
+import { LuckyDrawHttpError } from './api/luckyDraw'
 
 interface QuizResult {
   ok: boolean
@@ -22,10 +24,11 @@ const {
   state: drawState,
   canDraw,
   drawPrize,
-  claimBonusChance,
-  recordBasicFailure,
+  isLoading,
+  initialize,
+  recordBasicAnswer,
   recordAdvancedAnswer,
-  resetDrawState,
+  claimPrize,
 } = useLuckyDraw()
 const { launchPrizeCelebration } = usePrizeCelebration()
 
@@ -35,13 +38,19 @@ const showAdvancedChallenge = ref(false)
 const currentAdvancedQuiz = ref<Quiz | null>(null)
 const advancedAnswerResult = ref<AdvancedAnswerResult | null>(null)
 const isDrawing = ref(false)
-const openedPrize = ref('')
+const isOpeningPrize = ref(false)
+const openedPrize = ref<DrawRecord | null>(null)
 const showCorrectAnswer = ref(false)
 const showWrongAnswer = ref(false)
 const shouldAskNextBasicAfterPenalty = ref(false)
 const showFriendshipMessage = ref(false)
+const showPrizeHistory = ref(false)
+const claimingPrizeId = ref('')
+const claimError = ref('')
+const loadError = ref('')
+const isAdvancedSubmitting = ref(false)
 const portalHref = import.meta.env.VITE_PORTAL_ROUTE ?? '/'
-const isDevResetEnabled = import.meta.env.DEV
+const luckyDrawRoute = '/lucky-draw/'
 
 const availableBasicQuizzes = computed(() =>
   basicQuizzes.filter((quiz) => !drawState.value.basicFailedQuestionIds.includes(quiz.id)),
@@ -54,6 +63,9 @@ const availableAdvancedQuizzes = computed(() =>
 const hasAvailableAdvancedQuestions = computed(() => availableAdvancedQuizzes.value.length > 0)
 
 const primaryActionLabel = computed(() => {
+  if (drawState.value.drawReady) {
+    return '继续开奖'
+  }
   if (drawState.value.friendshipSunk) {
     return '友谊的小船已翻'
   }
@@ -104,6 +116,11 @@ const startEntry = () => {
     return
   }
 
+  if (drawState.value.drawReady) {
+    isDrawing.value = true
+    return
+  }
+
   if (canDraw.value) {
     openRandomBasicQuiz()
     return
@@ -114,7 +131,20 @@ const startEntry = () => {
   }
 }
 
-const submitBasicQuiz = (answer: string, done?: (result: QuizResult) => void) => {
+const redirectToLogin = () => {
+  const separator = portalHref.includes('?') ? '&' : '?'
+  window.location.assign(`${portalHref}${separator}login=1&next=${encodeURIComponent(luckyDrawRoute)}`)
+}
+
+const handleApiError = (error: unknown, fallback: string) => {
+  if (error instanceof LuckyDrawHttpError && error.status === 401) {
+    redirectToLogin()
+    return '请先登录'
+  }
+  return error instanceof Error ? error.message : fallback
+}
+
+const submitBasicQuiz = async (answer: string, done?: (result: QuizResult) => void) => {
   const finish = (result: QuizResult) => {
     done?.(result)
     return result
@@ -126,59 +156,76 @@ const submitBasicQuiz = (answer: string, done?: (result: QuizResult) => void) =>
     return finish({ ok: false, message: '题目加载失败，请重新开始。' })
   }
 
-  if (normalizeAnswer(answer) !== normalizeAnswer(quiz.answer)) {
-    const friendshipSunk = recordBasicFailure(quiz.id)
-    shouldAskNextBasicAfterPenalty.value = !friendshipSunk
-    closeBasicQuiz()
-    isDrawing.value = false
-    showWrongAnswer.value = true
-    return finish({ ok: true })
-  }
+  try {
+    const result = await recordBasicAnswer(quiz.id, answer)
+    if (!result.correct) {
+      shouldAskNextBasicAfterPenalty.value = !result.state.friendshipSunk
+      closeBasicQuiz()
+      isDrawing.value = false
+      showWrongAnswer.value = true
+      return finish({ ok: true })
+    }
 
-  closeBasicQuiz()
-  showCorrectAnswer.value = true
-  return finish({ ok: true })
+    closeBasicQuiz()
+    showCorrectAnswer.value = true
+    return finish({ ok: true })
+  } catch (error) {
+    return finish({ ok: false, message: handleApiError(error, '答案提交失败，请重试。') })
+  }
 }
 
-const submitAdvancedAnswer = (answer: string) => {
+const submitAdvancedAnswer = async (answer: string) => {
   const quiz = currentAdvancedQuiz.value
 
   if (!quiz || advancedAnswerResult.value) {
     return
   }
 
-  const correct = normalizeAnswer(answer) === normalizeAnswer(quiz.answer)
-  recordAdvancedAnswer(quiz.id, correct)
-
-  advancedAnswerResult.value = {
-    correct,
-    selected: answer,
-    gainedChance: correct ? claimBonusChance() : false,
+  isAdvancedSubmitting.value = true
+  try {
+    const result = await recordAdvancedAnswer(quiz.id, answer)
+    advancedAnswerResult.value = {
+      correct: result.correct,
+      selected: answer,
+      gainedChance: result.gainedChance,
+    }
+  } catch (error) {
+    loadError.value = handleApiError(error, '答案提交失败，请重试。')
+    closeAdvancedChallenge()
+  } finally {
+    isAdvancedSubmitting.value = false
   }
 }
 
-const openZongzi = () => {
+const openZongzi = async () => {
   if (!isDrawing.value || openedPrize.value) {
     return
   }
-
-  const prize = drawPrize()
-  if (!prize) {
+  isOpeningPrize.value = true
+  try {
+    const prize = await drawPrize()
+    if (!prize) {
+      isDrawing.value = false
+      return
+    }
+    openedPrize.value = prize
+    launchPrizeCelebration()
+  } catch (error) {
+    loadError.value = handleApiError(error, '开奖失败，请重试。')
     isDrawing.value = false
-    return
+  } finally {
+    isOpeningPrize.value = false
   }
-
-  openedPrize.value = prize
-  launchPrizeCelebration()
 }
 
 const finishPrize = () => {
-  openedPrize.value = ''
+  openedPrize.value = null
+  claimError.value = ''
   isDrawing.value = false
 }
 
 const claimMoreChance = () => {
-  openedPrize.value = ''
+  openedPrize.value = null
   isDrawing.value = false
   openAdvancedChallenge()
 }
@@ -191,7 +238,7 @@ const finishCorrectAnswer = () => {
 const returnHomeAfterWrongAnswer = () => {
   showWrongAnswer.value = false
   isDrawing.value = false
-  openedPrize.value = ''
+  openedPrize.value = null
 
   if (shouldAskNextBasicAfterPenalty.value) {
     shouldAskNextBasicAfterPenalty.value = false
@@ -202,30 +249,32 @@ const returnHomeAfterWrongAnswer = () => {
   showFriendshipMessage.value = drawState.value.friendshipSunk
 }
 
-const resetDevState = () => {
-  if (!isDevResetEnabled) {
-    return
+const claimDrawPrize = async (prize: DrawRecord) => {
+  claimingPrizeId.value = prize.id
+  claimError.value = ''
+  try {
+    const claimed = await claimPrize(prize.id)
+    if (openedPrize.value?.id === claimed.id) {
+      openedPrize.value = claimed
+    }
+  } catch (error) {
+    claimError.value = handleApiError(error, '领取失败，请重试。')
+  } finally {
+    claimingPrizeId.value = ''
   }
-
-  const confirmed = window.confirm('重置开发测试状态？会清空抽奖次数、答错记录和友谊翻船状态。')
-
-  if (!confirmed) {
-    return
-  }
-
-  resetDrawState()
-  showBasicQuiz.value = false
-  currentBasicQuiz.value = null
-  showAdvancedChallenge.value = false
-  currentAdvancedQuiz.value = null
-  advancedAnswerResult.value = null
-  isDrawing.value = false
-  openedPrize.value = ''
-  showCorrectAnswer.value = false
-  showWrongAnswer.value = false
-  shouldAskNextBasicAfterPenalty.value = false
-  showFriendshipMessage.value = false
 }
+
+const loadState = async () => {
+  loadError.value = ''
+  try {
+    await initialize()
+    isDrawing.value = drawState.value.drawReady
+  } catch (error) {
+    loadError.value = handleApiError(error, '活动状态加载失败，请重试。')
+  }
+}
+
+onMounted(loadState)
 </script>
 
 <template>
@@ -235,19 +284,31 @@ const resetDevState = () => {
     </a>
 
     <button
-      v-if="isDevResetEnabled"
-      class="dev-reset-button"
+      v-if="!isLoading && !loadError"
+      class="prize-history-button"
       type="button"
-      title="重置开发测试状态"
-      aria-label="重置开发测试状态"
-      @click="resetDevState"
+      aria-label="查看我的奖品"
+      @click="showPrizeHistory = true"
     >
-      <RefreshCcw :size="16" />
-      <span>重置</span>
+      <Trophy :size="16" />
+      <span>我的奖品</span>
     </button>
 
+    <section v-if="isLoading" class="state-panel" role="status" aria-live="polite">
+      <LoaderCircle class="spin" :size="28" />
+      <h1>正在读取活动记录</h1>
+      <p>答题、抽奖与奖品状态将从服务端同步。</p>
+    </section>
+
+    <section v-else-if="loadError" class="state-panel error-panel" role="alert">
+      <AlertCircle :size="28" />
+      <h1>暂时无法进入活动</h1>
+      <p>{{ loadError }}</p>
+      <button class="primary-action small" type="button" @click="loadState">重试</button>
+    </section>
+
     <HeroSection
-      v-if="!isDrawing"
+      v-if="!isLoading && !loadError && !isDrawing"
       :title="title"
       :action-label="primaryActionLabel"
       :action-disabled="drawState.friendshipSunk || (!canDraw && !hasAvailableAdvancedQuestions)"
@@ -259,7 +320,11 @@ const resetDevState = () => {
       @start="startEntry"
     />
 
-    <DrawStage v-if="isDrawing" :disabled="Boolean(openedPrize)" @open="openZongzi" />
+    <DrawStage
+      v-if="!isLoading && !loadError && isDrawing"
+      :disabled="Boolean(openedPrize) || isOpeningPrize"
+      @open="openZongzi"
+    />
 
     <QuizModal
       v-if="showBasicQuiz && currentBasicQuiz"
@@ -275,6 +340,7 @@ const resetDevState = () => {
       :answered-count="drawState.advancedAnsweredQuestionIds.length"
       :total-count="advancedQuizzes.length"
       :can-next="hasAvailableAdvancedQuestions"
+      :submitting="isAdvancedSubmitting"
       @answer="submitAdvancedAnswer"
       @next="setNextAdvancedQuestion"
       @close="closeAdvancedChallenge"
@@ -283,9 +349,20 @@ const resetDevState = () => {
     <PrizeModal
       v-if="openedPrize"
       :prize="openedPrize"
+      :claiming="claimingPrizeId === openedPrize.id"
+      :claim-error="claimError"
       :can-claim-more="hasAvailableAdvancedQuestions && !drawState.friendshipSunk"
       @close="finishPrize"
+      @claim="claimDrawPrize(openedPrize)"
       @claim-more="claimMoreChance"
+    />
+
+    <PrizeHistoryModal
+      v-if="showPrizeHistory"
+      :prizes="drawState.draws"
+      :claiming-id="claimingPrizeId"
+      @close="showPrizeHistory = false"
+      @claim="claimDrawPrize"
     />
 
     <div v-if="showFriendshipMessage" class="modal-backdrop friendship-backdrop" role="presentation">
@@ -353,11 +430,11 @@ const resetDevState = () => {
   transform: translateY(-2px);
 }
 
-.dev-reset-button {
+.prize-history-button {
   position: fixed;
   z-index: 24;
-  right: calc(14px + env(safe-area-inset-right));
-  bottom: calc(14px + env(safe-area-inset-bottom));
+  top: calc(18px + env(safe-area-inset-top));
+  right: calc(18px + env(safe-area-inset-right));
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -376,15 +453,40 @@ const resetDevState = () => {
     color 0.2s ease;
 }
 
-.dev-reset-button:hover {
+.prize-history-button:hover {
   color: var(--accent);
   background: var(--accent-soft);
   transform: translateY(-2px);
 }
 
-.dev-reset-button:active {
+.prize-history-button:active {
   transform: translateY(0);
 }
+
+.state-panel {
+  position: relative;
+  z-index: 2;
+  width: min(100%, 520px);
+  margin: 0 auto;
+  display: grid;
+  justify-items: start;
+  gap: 12px;
+  border: 1px solid var(--line-strong);
+  padding: 30px;
+  background: var(--surface);
+  box-shadow: 12px 12px 0 rgb(0 47 167 / 10%);
+}
+
+.state-panel h1,
+.state-panel p {
+  margin: 0;
+}
+
+.state-panel h1 { font-size: 26px; }
+.state-panel p { color: var(--muted); line-height: 1.7; }
+.error-panel svg { color: #b42318; }
+.spin { animation: spin 0.9s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
 
 .friendship-backdrop {
   z-index: 22;
@@ -437,9 +539,9 @@ const resetDevState = () => {
     height: 36px;
   }
 
-  .dev-reset-button {
+  .prize-history-button {
+    top: calc(12px + env(safe-area-inset-top));
     right: calc(12px + env(safe-area-inset-right));
-    bottom: calc(12px + env(safe-area-inset-bottom));
     min-width: 68px;
     min-height: 42px;
     font-size: 13px;

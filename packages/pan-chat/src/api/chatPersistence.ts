@@ -1,9 +1,11 @@
 import { apiRequest, isUnauthorizedError } from './request'
+import { streamSse } from './sse'
 import type {
   ChatSession,
   PersistedChatMessage,
   SendMessageResponse,
   UserInfo,
+  MessageFeedbackInput,
 } from '../types/chat'
 
 export async function getCurrentUser(): Promise<UserInfo | null> {
@@ -42,6 +44,43 @@ export function sendSessionMessage(
     body: JSON.stringify({ content }),
     signal,
   })
+}
+
+export function streamSessionMessage(
+  sessionId: string,
+  content: string,
+  onEvent: (event: string, payload: unknown) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  return streamSse(`/api/chat/sessions/${sessionId}/messages/stream`, {
+    method: 'POST',
+    body: JSON.stringify({ content }),
+    signal,
+  }, onEvent)
+}
+
+export function regenerateSessionMessage(
+  sessionId: string,
+  messageId: string,
+  onEvent: (event: string, payload: unknown) => void,
+  signal?: AbortSignal,
+): Promise<void> {
+  return streamSse(
+    `/api/chat/sessions/${sessionId}/messages/${messageId}/regenerate/stream`,
+    { method: 'POST', body: JSON.stringify({}), signal },
+    onEvent,
+  )
+}
+
+export function saveMessageFeedback(
+  sessionId: string,
+  messageId: string,
+  feedback: MessageFeedbackInput,
+): Promise<PersistedChatMessage> {
+  return apiRequest<PersistedChatMessage>(
+    `/api/chat/sessions/${sessionId}/messages/${messageId}/feedback`,
+    { method: 'PUT', body: JSON.stringify(feedback) },
+  )
 }
 
 export function deleteAllSessions(): Promise<void> {

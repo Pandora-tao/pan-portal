@@ -59,7 +59,7 @@ export function isUnauthorizedError(error: unknown): error is HttpError {
   return error instanceof HttpError && error.status === 401
 }
 
-async function getResponseError(response: Response): Promise<string> {
+export async function getResponseError(response: Response): Promise<string> {
   try {
     const result = (await response.json()) as Partial<ApiResult<unknown>>
     if (typeof result.message === 'string' && result.message.trim()) {

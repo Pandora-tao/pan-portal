@@ -16,10 +16,15 @@ const {
   clearing,
   loading,
   isGuest,
+  feedbackEnabled,
+  feedbackSubmittingId,
   error,
   guestNotice,
   loginHref,
   sendMessage,
+  regenerateMessage,
+  rateMessage,
+  submitProblemFeedback,
   stopGenerating,
   clearMessages,
 } = useChat()
@@ -129,7 +134,15 @@ onUnmounted(() => {
             <LoaderCircle :size="20" class="spin" />
             <span>正在读取对话...</span>
           </div>
-          <MessageList v-else :messages="messages" />
+          <MessageList
+            v-else
+            :messages="messages"
+            :feedback-enabled="feedbackEnabled"
+            :feedback-submitting-id="feedbackSubmittingId"
+            @regenerate="regenerateMessage"
+            @rate="rateMessage"
+            @feedback="submitProblemFeedback"
+          />
 
           <p v-if="error" class="chat-error" role="alert">
             {{ error }}

@@ -6,7 +6,7 @@ export type ChatRole = 'user' | 'assistant'
 
 /**
  * 消息状态。
- * streaming / stopped 在模块十一 SSE 阶段落地。
+ * streaming / stopped 用于 SSE 生成中和用户主动停止后的状态。
  */
 export type MessageStatus = 'pending' | 'streaming' | 'completed' | 'failed' | 'stopped'
 
@@ -17,6 +17,7 @@ export interface ChatMessage {
   status: MessageStatus
   createdAt: string
   errorMessage?: string
+  feedback?: ChatMessageFeedback
 }
 
 /**
@@ -57,6 +58,41 @@ export interface ChatMessageMetadata {
   model?: string
   tokens?: number
   durationMs?: number
+}
+
+export type FeedbackRating = 'like' | 'dislike'
+
+export interface ChatMessageFeedback {
+  rating?: FeedbackRating
+  categories: string[]
+  comment?: string
+  submittedAt?: string
+}
+
+export interface MessageFeedbackInput {
+  rating?: FeedbackRating
+  categories?: string[]
+  comment?: string
+}
+
+export interface ChatStreamStartEvent {
+  userMessage?: PersistedChatMessage | null
+  assistantMessage: PersistedChatMessage
+}
+
+export interface ChatStreamDeltaEvent {
+  messageId?: string
+  delta: string
+}
+
+export interface ChatStreamDoneEvent {
+  assistantMessages: PersistedChatMessage[]
+}
+
+export interface ChatStreamErrorEvent {
+  message: string
+  assistantMessage?: PersistedChatMessage
+  retryable: boolean
 }
 
 export interface SendMessageResponse {

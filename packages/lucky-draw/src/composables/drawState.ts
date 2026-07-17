@@ -1,11 +1,21 @@
-export const STORAGE_KEY = 'taopan-dragon-boat-lucky-draw-v3'
+export type PrizeClaimStatus = 'UNCLAIMED' | 'CLAIMED' | 'REDEEMED'
 
 export interface DrawRecord {
-  prize: string
-  time: string
+  id: string
+  prizeKey: string
+  prizeType: 'TEXT' | 'RED_PACKET'
+  prizeName: string
+  prizeAmount: number | null
+  prizeDisplayName: string
+  claimStatus: PrizeClaimStatus
+  claimedAt: string | null
+  redeemedAt: string | null
+  redeemNote: string | null
+  createdAt: string
 }
 
 export interface DrawState {
+  activityVersion: string
   chances: number
   draws: DrawRecord[]
   bonusClaimed: boolean
@@ -13,14 +23,17 @@ export interface DrawState {
   friendshipSunk: boolean
   advancedAnsweredQuestionIds: string[]
   advancedScore: number
+  drawReady: boolean
 }
 
 export const createDefaultDrawState = (): DrawState => ({
-  chances: 1,
+  activityVersion: '',
+  chances: 0,
   draws: [],
   bonusClaimed: false,
   basicFailedQuestionIds: [],
   friendshipSunk: false,
   advancedAnsweredQuestionIds: [],
   advancedScore: 0,
+  drawReady: false,
 })

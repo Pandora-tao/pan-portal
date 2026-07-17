@@ -1,17 +1,27 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { Gift } from 'lucide-vue-next'
+import { CheckCircle2, Gift, LoaderCircle } from 'lucide-vue-next'
 import { gsap } from 'gsap'
+import type { DrawRecord } from '../composables/drawState'
 
-defineProps<{
-  prize: string
+const props = defineProps<{
+  prize: DrawRecord
   canClaimMore?: boolean
+  claiming?: boolean
+  claimError?: string
 }>()
 
 defineEmits<{
   close: []
+  claim: []
   'claim-more': []
 }>()
+
+const statusLabel = () => {
+  if (props.prize.claimStatus === 'REDEEMED') return '已核销'
+  if (props.prize.claimStatus === 'CLAIMED') return '已领取，等待核销'
+  return '待领取'
+}
 
 const modalRef = ref<HTMLElement | null>(null)
 
@@ -34,12 +44,27 @@ onMounted(() => {
       <p class="modal-kicker"><Gift :size="15" />开奖完成</p>
       <h2 id="prize-title">开奖结果</h2>
       <p class="result-label">你的奖品</p>
-      <strong class="prize-name">{{ prize }}</strong>
+      <strong class="prize-name">{{ prize.prizeDisplayName }}</strong>
+      <p class="claim-status" :class="prize.claimStatus.toLowerCase()">
+        <CheckCircle2 :size="16" />{{ statusLabel() }}
+      </p>
       <p class="prize-note">当前是测试版，奖品兑现等到正式版才生效。</p>
+      <p v-if="claimError" class="claim-error" role="alert">{{ claimError }}</p>
       <div class="modal-actions center">
-        <button class="primary-action small" type="button" @click="$emit('close')">
-          <Gift :size="17" />
-          <span>收下奖品</span>
+        <button
+          v-if="prize.claimStatus === 'UNCLAIMED'"
+          class="primary-action small"
+          type="button"
+          :disabled="claiming"
+          @click="$emit('claim')"
+        >
+          <LoaderCircle v-if="claiming" class="spin" :size="17" />
+          <Gift v-else :size="17" />
+          <span>{{ claiming ? '领取中' : '确认领取' }}</span>
+        </button>
+        <button v-else class="primary-action small" type="button" @click="$emit('close')">
+          <CheckCircle2 :size="17" />
+          <span>关闭</span>
         </button>
         <button v-if="canClaimMore" class="secondary-action" type="button" @click="$emit('claim-more')">
           进阶挑战
@@ -107,6 +132,41 @@ onMounted(() => {
   color: var(--muted);
   font-size: 14px;
   line-height: 1.7;
+}
+
+.claim-status {
+  width: fit-content;
+  margin: 12px auto 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1px solid var(--line-strong);
+  padding: 7px 10px;
+  color: var(--ink);
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.claim-status.claimed,
+.claim-status.redeemed {
+  color: var(--accent);
+  background: var(--accent-soft);
+}
+
+.claim-error {
+  margin: 12px auto 0;
+  color: #b42318;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
 }
 
 .modal-actions {

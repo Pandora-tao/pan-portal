@@ -1,5 +1,6 @@
 import type {
   AdminMe,
+  AdminPrizeRecord,
   AuditView,
   ConversationDetail,
   ConversationSummary,
@@ -98,4 +99,11 @@ export const adminApi = {
     }),
   audits: (params: Record<string, string | number | null | undefined>) =>
     request<PageResponse<AuditView>>(`/api/admin/audit-logs${query(params)}`),
+  luckyDrawPrizes: (params: Record<string, string | number | null | undefined>) =>
+    request<PageResponse<AdminPrizeRecord>>(`/api/admin/lucky-draw/prizes${query(params)}`),
+  redeemLuckyDrawPrize: (id: string, note?: string) =>
+    request<AdminPrizeRecord>(`/api/admin/lucky-draw/prizes/${id}/redeem`, {
+      method: 'POST',
+      body: JSON.stringify({ note: note || null }),
+    }),
 }

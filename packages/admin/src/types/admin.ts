@@ -116,3 +116,19 @@ export interface TrendPoint {
   userMessages: number
   assistantMessages: number
 }
+
+export type PrizeClaimStatus = 'UNCLAIMED' | 'CLAIMED' | 'REDEEMED'
+
+export interface AdminPrizeRecord {
+  id: string
+  userId: string
+  userEmail: string
+  userDisplayName: string
+  prizeDisplayName: string
+  claimStatus: PrizeClaimStatus
+  claimedAt: string | null
+  redeemedAt: string | null
+  redeemedByEmail: string | null
+  redeemNote: string | null
+  createdAt: string
+}

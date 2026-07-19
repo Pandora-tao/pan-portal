@@ -9,6 +9,8 @@ export type ChatRole = 'user' | 'assistant'
  * streaming / stopped 用于 SSE 生成中和用户主动停止后的状态。
  */
 export type MessageStatus = 'pending' | 'streaming' | 'completed' | 'failed' | 'stopped'
+export type MessageContentType = 'TEXT' | 'STICKER'
+export type MessageOrigin = 'REACTIVE' | 'PROACTIVE'
 
 export interface ChatMessage {
   id: string
@@ -16,6 +18,9 @@ export interface ChatMessage {
   content: string
   status: MessageStatus
   createdAt: string
+  contentType?: MessageContentType
+  stickerKey?: 'lulu' | 'pudding-dog' | 'crab'
+  origin?: MessageOrigin
   errorMessage?: string
   feedback?: ChatMessageFeedback
 }

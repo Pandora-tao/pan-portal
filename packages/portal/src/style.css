@@ -305,6 +305,12 @@ a {
   flex: 0 0 auto;
 }
 
+.account-name:hover,
+.account-name:focus-visible {
+  background: var(--sweet-green);
+  transform: rotate(0deg) translateY(-2px);
+}
+
 .account-logout,
 .account-loading {
   width: 36px;

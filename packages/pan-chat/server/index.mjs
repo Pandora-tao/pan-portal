@@ -99,7 +99,9 @@ function isBackendApiPath(pathname) {
     pathname === '/api/me' ||
     pathname.startsWith('/api/auth/') ||
     pathname === '/api/chat/sessions' ||
-    pathname.startsWith('/api/chat/sessions/')
+    pathname.startsWith('/api/chat/sessions/') ||
+    pathname === '/api/relationship' ||
+    pathname.startsWith('/api/relationship/')
   )
 }
 

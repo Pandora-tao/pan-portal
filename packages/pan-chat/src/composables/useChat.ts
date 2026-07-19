@@ -2,7 +2,6 @@ import { computed, onMounted, ref } from 'vue'
 import { streamLegacyChat } from '../api/chat'
 import {
   createSession,
-  deleteAllSessions,
   getCurrentUser,
   listMessages,
   listSessions,
@@ -10,6 +9,7 @@ import {
   saveMessageFeedback,
   streamSessionMessage,
 } from '../api/chatPersistence'
+import { relationshipApi } from '../api/relationship'
 import { isUnauthorizedError } from '../api/request'
 import { SseEventError } from '../api/sse'
 import type {
@@ -23,6 +23,7 @@ import type {
   MessageFeedbackInput,
   PersistedChatMessage,
 } from '../types/chat'
+import type { RelationshipOverview } from '../types/relationship'
 import { normalizeAssistantContents } from '../utils/assistantMessages'
 import { createId } from '../utils/id'
 import { isEmptyMessage, isMessageTooLong, normalizeMessageContent } from '../utils/text'
@@ -36,8 +37,8 @@ export function useChat() {
   const messages = ref<ChatMessage[]>([])
   const mode = ref<ChatMode>('loading')
   const currentSessionId = ref<string | null>(null)
+  const relationshipOverview = ref<RelationshipOverview | null>(null)
   const sending = ref(false)
-  const clearing = ref(false)
   const feedbackSubmittingId = ref<string | null>(null)
   const error = ref<string | null>(null)
   const guestNotice = ref(GUEST_NOTICE)
@@ -49,6 +50,10 @@ export function useChat() {
   const isGuest = computed(() => mode.value === 'guest')
   const feedbackEnabled = computed(() => mode.value === 'account')
   const loginHref = computed(() => '/?login=1&next=%2Fchat%2F')
+  const continuityLabel = computed(() => formatContinuityLabel(
+    relationshipOverview.value?.lastInteractionAt ?? null,
+    mode.value,
+  ))
 
   onMounted(initialize)
 
@@ -64,7 +69,11 @@ export function useChat() {
       }
 
       mode.value = 'account'
-      const sessions = await listSessions()
+      const [sessions, overview] = await Promise.all([
+        listSessions(),
+        relationshipApi.overview(),
+      ])
+      relationshipOverview.value = overview
       const latestSession = sessions[0]
 
       if (!latestSession) {
@@ -74,6 +83,18 @@ export function useChat() {
       }
 
       currentSessionId.value = latestSession.id
+      try {
+        const proactive = await relationshipApi.checkProactive()
+        const lastProactive = proactive.messages.at(-1)
+        if (lastProactive) {
+          relationshipOverview.value = {
+            ...overview,
+            lastInteractionAt: lastProactive.createdAt,
+          }
+        }
+      } catch {
+        // 主动联系只是增强能力，不能阻断用户进入已有聊天。
+      }
       messages.value = (await listMessages(latestSession.id)).map(toChatMessage)
     } catch (caught) {
       if (isUnauthorizedError(caught)) {
@@ -193,6 +214,11 @@ export function useChat() {
       }
     } finally {
       sending.value = false
+      if (mode.value === 'account') {
+        relationshipOverview.value = relationshipOverview.value
+          ? { ...relationshipOverview.value, lastInteractionAt: new Date().toISOString() }
+          : null
+      }
       currentController = null
       currentAssistantId = null
     }
@@ -212,13 +238,17 @@ export function useChat() {
         const response = payload as LegacyChatResponse
         const timestamp = Date.now()
         const assistantMessages = normalizeAssistantContents(response.answers, response.answer)
-          .map((content, index) => ({
-            id: index === 0 ? assistantId : createId('msg'),
-            role: 'assistant' as const,
-            content,
-            status: 'completed' as const,
-            createdAt: new Date(timestamp + index).toISOString(),
-          }))
+          .map((content, index) => {
+            const presentation = parseMessagePresentation(content)
+            return {
+              id: index === 0 ? assistantId : createId('msg'),
+              role: 'assistant' as const,
+              content,
+              status: 'completed' as const,
+              createdAt: new Date(timestamp + index).toISOString(),
+              ...presentation,
+            }
+          })
         replaceMessage(assistantId, assistantMessages)
       }
     }, signal)
@@ -332,39 +362,10 @@ export function useChat() {
     currentController.abort()
   }
 
-  async function clearMessages() {
-    if (sending.value || clearing.value) return
-
-    if (mode.value === 'guest') {
-      messages.value = []
-      error.value = null
-      return
-    }
-
-    if (mode.value !== 'account') return
-    if (!window.confirm('确认永久删除账号中的全部聊天记录吗？此操作无法恢复。')) return
-
-    clearing.value = true
-    error.value = null
-    try {
-      await deleteAllSessions()
-      messages.value = []
-      currentSessionId.value = null
-    } catch (caught) {
-      if (isUnauthorizedError(caught)) {
-        enterGuestMode(EXPIRED_NOTICE)
-        error.value = '登录状态已失效，未执行账号记录删除。'
-        return
-      }
-      error.value = caught instanceof Error ? caught.message : '清空失败，请稍后再试。'
-    } finally {
-      clearing.value = false
-    }
-  }
-
   function enterGuestMode(notice: string) {
     mode.value = 'guest'
     currentSessionId.value = null
+    relationshipOverview.value = null
     messages.value = []
     guestNotice.value = notice
   }
@@ -396,6 +397,9 @@ export function useChat() {
       content: message.content,
       status: message.status,
       createdAt: message.createdAt,
+      contentType: message.contentType,
+      stickerKey: message.stickerKey,
+      origin: message.origin,
       errorMessage: message.errorMessage,
       feedback: message.feedback,
     }
@@ -404,9 +408,9 @@ export function useChat() {
   return {
     messages,
     sending,
-    clearing,
     loading,
     isGuest,
+    continuityLabel,
     feedbackEnabled,
     feedbackSubmittingId,
     error,
@@ -417,6 +421,28 @@ export function useChat() {
     rateMessage,
     submitProblemFeedback,
     stopGenerating,
-    clearMessages,
   }
+}
+
+function parseMessagePresentation(content: string): Pick<ChatMessage, 'contentType' | 'stickerKey'> {
+  const match = content.trim().match(/^\[\[sticker:(lulu|pudding-dog|crab)]]$/)
+  return match
+    ? { contentType: 'STICKER', stickerKey: match[1] as ChatMessage['stickerKey'] }
+    : { contentType: 'TEXT' }
+}
+
+function formatContinuityLabel(lastInteractionAt: string | null, mode: ChatMode) {
+  if (mode === 'loading') return '正在回来'
+  if (mode === 'guest') return '临时聊天'
+  if (!lastInteractionAt) return '一直在这里'
+
+  const elapsedMs = Math.max(0, Date.now() - new Date(lastInteractionAt).getTime())
+  const minutes = Math.floor(elapsedMs / 60_000)
+  const hours = Math.floor(elapsedMs / 3_600_000)
+  const days = Math.floor(elapsedMs / 86_400_000)
+  if (minutes < 2) return '刚刚聊过'
+  if (minutes < 60) return `${minutes} 分钟前聊过`
+  if (hours < 24) return `${hours} 小时前聊过`
+  if (days < 30) return `${days} 天前聊过`
+  return '好久不见'
 }

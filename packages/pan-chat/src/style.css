@@ -183,6 +183,17 @@ button {
   line-height: 1.2;
 }
 
+.chat-title span {
+  display: block;
+  margin-top: 3px;
+  overflow: hidden;
+  color: #6e6e73;
+  font-size: 11px;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .chat-title h1 {
   margin-top: 2px;
   color: #1c1c1e;
@@ -450,6 +461,23 @@ button {
   line-height: 1.72;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
+}
+
+.message-row.is-sticker .message-card {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+}
+
+.message-sticker {
+  display: block;
+  width: clamp(108px, 24vw, 158px);
+  height: clamp(108px, 24vw, 158px);
+  object-fit: contain;
+  filter: drop-shadow(0 12px 18px rgb(20 20 24 / 12%));
+  user-select: none;
 }
 
 .message-text.is-streaming::after {

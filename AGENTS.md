@@ -10,6 +10,7 @@ Workspace packages live under `packages/*`:
 - `packages/lucky-draw`: the Dragon Boat Festival lucky draw app.
 - `packages/pan-chat`: a chat/profile sub app with a small Node server.
 - `packages/admin`: a super-admin console for users, conversations, analytics, roles, and audit logs.
+- `packages/profile`: account-owned personal homepage maintenance and public profile display.
 
 The root `package.json` owns shared dependencies and workspace-level scripts. Individual package `package.json` files should generally keep only app-specific scripts.
 
@@ -26,6 +27,7 @@ pnpm dev:portal
 pnpm dev:lucky-draw
 pnpm dev:chat
 pnpm dev:admin
+pnpm dev:profile
 pnpm type-check
 pnpm build
 ```
@@ -46,12 +48,14 @@ Current dev routing is portal-first:
 - Lucky draw app: `packages/lucky-draw`, port `5173`, base `/lucky-draw/`.
 - Chat app: `packages/pan-chat`, port `5174`, base `/chat/`.
 - Admin app: `packages/admin`, port `5175`, base `/admin/`.
+- Profile app: `packages/profile`, port `5176`, base `/profile/`.
 
 Portal proxies sub app paths in `packages/portal/vite.config.ts`:
 
 - `/lucky-draw` -> `http://127.0.0.1:5173`
 - `/chat` -> `http://127.0.0.1:5174`
 - `/admin` -> `http://127.0.0.1:5175`
+- `/profile` -> `http://127.0.0.1:5176`
 
 When developing the full site, use:
 
@@ -66,6 +70,7 @@ http://localhost:666/
 http://localhost:666/lucky-draw/
 http://localhost:666/chat/
 http://localhost:666/admin/
+http://localhost:666/profile/
 ```
 
 If a port is already in use, do not silently change shared route assumptions. Check the relevant `vite.config.ts` and update this file if the project convention changes.

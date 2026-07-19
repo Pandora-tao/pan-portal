@@ -20,6 +20,7 @@ interface PortalApp {
 
 const luckyDrawRoute = import.meta.env.VITE_LUCKY_DRAW_ROUTE ?? '/lucky-draw/'
 const chatRoute = import.meta.env.VITE_CHAT_ROUTE ?? '/chat/'
+const profileRoute = import.meta.env.VITE_PROFILE_ROUTE ?? '/profile/'
 
 const apps: PortalApp[] = [
   {
@@ -145,7 +146,7 @@ async function submitAuth() {
 function getRequestedNextRoute(): string | null {
   const params = new URLSearchParams(window.location.search)
   const nextRoute = params.get('next')
-  const allowedRoutes = new Set([chatRoute, luckyDrawRoute])
+  const allowedRoutes = new Set([chatRoute, luckyDrawRoute, profileRoute])
   return nextRoute && allowedRoutes.has(nextRoute) && nextRoute.startsWith('/') && !nextRoute.startsWith('//')
     ? nextRoute
     : null
@@ -512,9 +513,9 @@ onBeforeUnmount(() => {
             <LoaderCircle :size="18" />
           </span>
           <template v-else-if="currentUser">
-            <span class="account-name" :title="currentUser.email">
+            <a class="account-name" :href="profileRoute" :title="`${currentUser.email} · 维护个人主页`">
               <UserRound :size="16" />{{ currentUser.displayName }}
-            </span>
+            </a>
             <button type="button" class="account-logout" aria-label="退出登录" @click="signOut">
               <LogOut :size="16" />
             </button>

@@ -1,0 +1,10 @@
+{
+  "extends": "@vue/tsconfig/tsconfig.dom.json",
+  "include": ["env.d.ts", "src/**/*", "src/**/*.vue"],
+  "compilerOptions": {
+    "tsBuildInfoFile": "../../node_modules/.tmp/profile.tsbuildinfo",
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noImplicitOverride": true
+  }
+}

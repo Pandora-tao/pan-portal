@@ -1,21 +1,23 @@
 <script setup lang="ts">
-import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { onMounted, onUnmounted, ref } from 'vue'
 import { gsap } from 'gsap'
-import { CloudOff, Home, LoaderCircle, Square, Trash2 } from 'lucide-vue-next'
+import { Brain, CloudOff, Home, LoaderCircle, Square } from 'lucide-vue-next'
 import avatarUrl from '../../portal/src/assets/pan-avatar.png'
 import ChatInput from './components/ChatInput.vue'
 import MessageList from './components/MessageList.vue'
+import RelationshipPanel from './components/RelationshipPanel.vue'
 import { useChat } from './composables/useChat'
 
 const pageRef = ref<HTMLElement | null>(null)
+const relationshipOpen = ref(false)
 const KEYBOARD_OFFSET_PROPERTY = '--keyboard-offset'
 const portalHref = import.meta.env.VITE_PORTAL_ROUTE ?? '/'
 const {
   messages,
   sending,
-  clearing,
   loading,
   isGuest,
+  continuityLabel,
   feedbackEnabled,
   feedbackSubmittingId,
   error,
@@ -26,15 +28,16 @@ const {
   rateMessage,
   submitProblemFeedback,
   stopGenerating,
-  clearMessages,
 } = useChat()
 
 let ctx: ReturnType<typeof gsap.context> | null = null
 
-const hasMessages = computed(() => messages.value.length > 0)
-
 function handleSend(content: string) {
   void sendMessage(content)
+}
+
+function handleRelationshipDeleted() {
+  window.location.reload()
 }
 
 function updateKeyboardOffset() {
@@ -93,6 +96,7 @@ onUnmounted(() => {
         </div>
         <div class="chat-title">
           <p>陶攀</p>
+          <span>{{ sending ? '正在输入…' : continuityLabel }}</span>
         </div>
         <div class="header-actions">
           <button
@@ -106,15 +110,14 @@ onUnmounted(() => {
             <Square :size="15" />
           </button>
           <button
-            v-if="hasMessages && !sending"
+            v-if="!isGuest && !loading"
             type="button"
             class="icon-action"
-            aria-label="清空当前对话"
-            title="清空当前对话"
-            :disabled="clearing"
-            @click="void clearMessages()"
+            aria-label="查看记忆与关系数据"
+            title="记忆与关系"
+            @click="relationshipOpen = true"
           >
-            <Trash2 :size="15" />
+            <Brain :size="16" />
           </button>
           <a class="portal-link" :href="portalHref" aria-label="返回门户" title="返回门户">
             <Home :size="16" />
@@ -150,11 +153,16 @@ onUnmounted(() => {
 
           <ChatInput
             :sending="sending"
-            :disabled="loading || clearing"
+            :disabled="loading"
             @send="handleSend"
           />
         </section>
       </div>
     </section>
+    <RelationshipPanel
+      :open="relationshipOpen"
+      @close="relationshipOpen = false"
+      @deleted="handleRelationshipDeleted"
+    />
   </main>
 </template>

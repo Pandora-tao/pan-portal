@@ -69,7 +69,9 @@ function animateLatestMessage() {
         :key="message.id"
         :message="message"
         :grouped="index > 0 && message.role === 'assistant' && messages[index - 1]?.role === 'assistant'"
-        :can-regenerate="message.role === 'assistant' && index === messages.length - 1"
+        :can-regenerate="message.role === 'assistant'
+          && index === messages.length - 1
+          && (message.status === 'failed' || message.status === 'stopped')"
         :feedback-enabled="feedbackEnabled"
         :feedback-submitting="feedbackSubmittingId === message.id"
         @regenerate="emit('regenerate', $event)"

@@ -11,6 +11,9 @@ import {
   ThumbsUp,
   X,
 } from 'lucide-vue-next'
+import crabSticker from '../../../portal/src/assets/draggable-material/crab.png'
+import luluSticker from '../../../portal/src/assets/draggable-material/lulu.png'
+import puddingDogSticker from '../../../portal/src/assets/draggable-material/pudding-dog.png'
 import type { ChatMessage, FeedbackRating } from '../types/chat'
 
 const props = defineProps<{
@@ -35,8 +38,17 @@ const feedbackOpen = ref(false)
 const selectedRating = ref<FeedbackRating | undefined>(props.message.feedback?.rating)
 const selectedProblems = ref<string[]>(props.message.feedback?.categories ?? [])
 const feedbackComment = ref(props.message.feedback?.comment ?? '')
+const stickerUrl = computed(() => {
+  const stickers: Record<string, string> = {
+    lulu: luluSticker,
+    'pudding-dog': puddingDogSticker,
+    crab: crabSticker,
+  }
+  return props.message.stickerKey ? stickers[props.message.stickerKey] : undefined
+})
 const canOpenMessageMenu = computed(() => (
   props.message.role === 'assistant'
+  && props.message.contentType !== 'STICKER'
   && props.message.status !== 'pending'
   && props.message.status !== 'streaming'
   && Boolean(props.message.content)
@@ -198,7 +210,10 @@ onUnmounted(() => {
   <article
     ref="rowRef"
     class="message-row"
-    :class="[`is-${message.role}`, `is-${message.status}`, { 'is-grouped': grouped }]"
+    :class="[`is-${message.role}`, `is-${message.status}`, {
+      'is-grouped': grouped,
+      'is-sticker': message.contentType === 'STICKER',
+    }]"
   >
     <div class="message-stack">
       <div
@@ -225,6 +240,12 @@ onUnmounted(() => {
             <span v-for="index in 3" :key="index" class="thinking-dot"></span>
           </span>
         </div>
+        <img
+          v-else-if="message.contentType === 'STICKER' && stickerUrl"
+          class="message-sticker"
+          :src="stickerUrl"
+          alt="陶攀发来的贴纸"
+        />
         <p v-else class="message-text" :class="{ 'is-streaming': message.status === 'streaming' }">
           {{ message.content }}
         </p>
@@ -251,7 +272,10 @@ onUnmounted(() => {
         </Transition>
       </div>
 
-      <div v-if="message.status !== 'pending' && message.content" class="message-actions">
+      <div
+        v-if="message.status !== 'pending' && message.content && message.contentType !== 'STICKER'"
+        class="message-actions"
+      >
         <button type="button" class="message-action" :aria-label="copied ? '已复制' : '复制消息'" @click="void copyMessage()">
           <Check v-if="copied" :size="14" />
           <Copy v-else :size="14" />
@@ -267,7 +291,7 @@ onUnmounted(() => {
             @click="emit('regenerate', message.id)"
           >
             <RefreshCw :size="14" />
-            <span>{{ message.status === 'failed' || message.status === 'stopped' ? '重试' : '重新生成' }}</span>
+            <span>重试</span>
           </button>
         </template>
       </div>

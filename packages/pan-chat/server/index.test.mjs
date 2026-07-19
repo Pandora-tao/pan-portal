@@ -93,6 +93,11 @@ test('chat server proxies guest, auth, and persistent chat requests with cookies
     })
     assert.equal(deleteResponse.status, 200)
 
+    const relationshipResponse = await fetch(`http://127.0.0.1:${port}/api/relationship`, {
+      headers: { Cookie: 'pan_session=test-token' },
+    })
+    assert.equal(relationshipResponse.status, 200)
+
     assert.deepEqual(forwardedRequests, [
       {
         method: 'POST',
@@ -115,6 +120,12 @@ test('chat server proxies guest, auth, and persistent chat requests with cookies
       {
         method: 'DELETE',
         url: '/api/chat/sessions',
+        cookie: 'pan_session=test-token',
+        body: '',
+      },
+      {
+        method: 'GET',
+        url: '/api/relationship',
         cookie: 'pan_session=test-token',
         body: '',
       },

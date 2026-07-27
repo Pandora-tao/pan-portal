@@ -2,8 +2,6 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { gsap } from 'gsap'
 import {
-  Check,
-  Copy,
   MessageSquareWarning,
   RefreshCw,
   Send,
@@ -32,7 +30,6 @@ const emit = defineEmits<{
 
 const PROBLEM_OPTIONS = ['内容不准确', '没有帮助', '不符合语境', '表达不友好', '其他问题']
 const rowRef = ref<HTMLElement | null>(null)
-const copied = ref(false)
 const contextMenuOpen = ref(false)
 const feedbackOpen = ref(false)
 const selectedRating = ref<FeedbackRating | undefined>(props.message.feedback?.rating)
@@ -54,7 +51,6 @@ const canOpenMessageMenu = computed(() => (
   && Boolean(props.message.content)
 ))
 let thinkingContext: ReturnType<typeof gsap.context> | null = null
-let copiedTimer: number | null = null
 let longPressTimer: number | null = null
 let longPressStart = { x: 0, y: 0 }
 
@@ -89,24 +85,6 @@ async function startThinkingAnimation() {
         stagger: 0.12,
       }, '-=0.2')
   }, rowRef.value)
-}
-
-async function copyMessage() {
-  try {
-    await navigator.clipboard.writeText(props.message.content)
-  } catch {
-    const textarea = document.createElement('textarea')
-    textarea.value = props.message.content
-    textarea.style.position = 'fixed'
-    textarea.style.opacity = '0'
-    document.body.appendChild(textarea)
-    textarea.select()
-    document.execCommand('copy')
-    textarea.remove()
-  }
-  copied.value = true
-  if (copiedTimer) window.clearTimeout(copiedTimer)
-  copiedTimer = window.setTimeout(() => { copied.value = false }, 1600)
 }
 
 function toggleProblem(problem: string) {
@@ -199,7 +177,6 @@ watch(() => props.message.feedback, (feedback) => {
 }, { deep: true })
 onUnmounted(() => {
   stopThinkingAnimation()
-  if (copiedTimer) window.clearTimeout(copiedTimer)
   cancelLongPress()
   document.removeEventListener('pointerdown', handleDocumentPointerDown)
   document.removeEventListener('keydown', handleDocumentKeydown)
@@ -274,27 +251,18 @@ onUnmounted(() => {
       </div>
 
       <div
-        v-if="message.status !== 'pending' && message.content && message.contentType !== 'STICKER'"
+        v-if="message.role === 'assistant' && canRegenerate"
         class="message-actions"
       >
-        <button type="button" class="message-action" :aria-label="copied ? '已复制' : '复制消息'" @click="void copyMessage()">
-          <Check v-if="copied" :size="14" />
-          <Copy v-else :size="14" />
-          <span>{{ copied ? '已复制' : '复制' }}</span>
+        <button
+          type="button"
+          class="message-action"
+          :disabled="message.status === 'streaming'"
+          @click="emit('regenerate', message.id)"
+        >
+          <RefreshCw :size="14" />
+          <span>重试</span>
         </button>
-
-        <template v-if="message.role === 'assistant'">
-          <button
-            v-if="canRegenerate"
-            type="button"
-            class="message-action"
-            :disabled="message.status === 'streaming'"
-            @click="emit('regenerate', message.id)"
-          >
-            <RefreshCw :size="14" />
-            <span>重试</span>
-          </button>
-        </template>
       </div>
 
       <form v-if="feedbackOpen && message.role === 'assistant'" class="feedback-panel" @submit.prevent="submitFeedback">

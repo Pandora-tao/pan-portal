@@ -311,6 +311,51 @@ a {
   transform: rotate(0deg) translateY(-2px);
 }
 
+.identity-trigger {
+  border: 0;
+  cursor: pointer;
+}
+
+.identity-card {
+  max-width: 520px;
+}
+
+.identity-status {
+  margin: 22px 0;
+  padding: 16px;
+  border: 2px solid var(--ink);
+  background: #fff8d9;
+  box-shadow: 5px 5px 0 var(--ink);
+}
+
+.identity-status > span {
+  display: inline-block;
+  margin-bottom: 8px;
+  padding: 3px 8px;
+  background: var(--ink);
+  color: #fff;
+  font-weight: 800;
+}
+
+.identity-status p,
+.identity-success {
+  margin: 0;
+  line-height: 1.65;
+}
+
+.identity-status[data-status='REJECTED'] {
+  background: #ffe3de;
+}
+
+.identity-status[data-status='PENDING'] {
+  background: #e7efff;
+}
+
+.identity-success {
+  color: #17633a;
+  font-weight: 700;
+}
+
 .account-logout,
 .account-loading {
   width: 36px;

@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, type ComponentPublicInstance } from 'vue'
 import * as Matter from 'matter-js'
-import { ArrowRight, Eye, EyeOff, LoaderCircle, LogOut, Sparkles, UserRound, X } from 'lucide-vue-next'
+import { ArrowRight, BadgeCheck, Eye, EyeOff, LoaderCircle, LogOut, Sparkles, UserRound, X } from 'lucide-vue-next'
 import avatarUrl from './assets/pan-avatar.png'
-import { completePasswordReset, getCurrentUser, login, logout, register, type UserInfo } from './api/auth'
+import { completePasswordReset, getCurrentUser, login, logout, register, submitRealName, type UserInfo } from './api/auth'
 import DraggableDecoration from './draggable-decorations/DraggableDecoration.vue'
 import {
   createDecorationStyles,
@@ -21,8 +21,14 @@ interface PortalApp {
 const luckyDrawRoute = import.meta.env.VITE_LUCKY_DRAW_ROUTE ?? '/lucky-draw/'
 const chatRoute = import.meta.env.VITE_CHAT_ROUTE ?? '/chat/'
 const profileRoute = import.meta.env.VITE_PROFILE_ROUTE ?? '/profile/'
+const peopleRoute = import.meta.env.VITE_PEOPLE_ROUTE ?? '/people/'
 
 const apps: PortalApp[] = [
+  {
+    id: 'people',
+    name: '人物主页',
+    href: peopleRoute,
+  },
   {
     id: 'lucky-draw',
     name: '陶攀问答局',
@@ -41,6 +47,11 @@ const pendingRoute = ref<string | null>(null)
 const showPassword = ref(false)
 const authError = ref('')
 const currentUser = ref<UserInfo | null>(null)
+const isIdentityOpen = ref(false)
+const isIdentitySubmitting = ref(false)
+const identityName = ref('')
+const identityError = ref('')
+const identityMessage = ref('')
 const isResetOpen = ref(false)
 const isResetSubmitting = ref(false)
 const resetToken = ref('')
@@ -69,6 +80,47 @@ let rebuildTimer: number | undefined
 
 const authTitle = computed(() => (authMode.value === 'login' ? '欢迎回来' : '创建账户'))
 const authSubmitText = computed(() => (authMode.value === 'login' ? '登录' : '注册并登录'))
+const identityStatusCopy = computed(() => {
+  switch (currentUser.value?.realNameVerificationStatus) {
+    case 'PENDING': return { label: '等待审核', copy: '真实姓名已经提交。超级管理员审核通过后，个人记忆和个人主页会自动启用。' }
+    case 'APPROVED': return { label: '已通过', copy: '实名认证已通过，个人记忆和个人主页均已启用。' }
+    case 'REJECTED': return { label: '未通过', copy: currentUser.value.realNameReviewReason || '本次申请未通过，请核对真实姓名后重新提交。' }
+    default: return { label: '尚未提交', copy: '提交真实姓名后将进入超级管理员审核。审核通过前不会产生个人记忆，也不能维护个人主页。' }
+  }
+})
+
+function openIdentity() {
+  identityName.value = currentUser.value?.realName || ''
+  identityError.value = ''
+  identityMessage.value = ''
+  isIdentityOpen.value = true
+}
+
+function closeIdentity() {
+  if (isIdentitySubmitting.value) return
+  isIdentityOpen.value = false
+  const url = new URL(window.location.href)
+  url.searchParams.delete('identity')
+  window.history.replaceState(null, '', `${url.pathname}${url.search}${url.hash}`)
+}
+
+async function submitIdentity() {
+  const name = identityName.value.trim()
+  if (name.length < 2 || name.length > 80) {
+    identityError.value = '真实姓名需要填写 2 至 80 个字符'
+    return
+  }
+  isIdentitySubmitting.value = true
+  identityError.value = ''
+  try {
+    currentUser.value = await submitRealName(name)
+    identityMessage.value = '已提交审核。审核通过后会自动开放个人记忆和个人主页。'
+  } catch (error) {
+    identityError.value = error instanceof Error ? error.message : '提交失败，请稍后再试'
+  } finally {
+    isIdentitySubmitting.value = false
+  }
+}
 
 function openAuth(mode: 'login' | 'register' = 'login', nextRoute: string | null = null) {
   authMode.value = mode
@@ -131,6 +183,10 @@ async function submitAuth() {
     authForm.password = ''
     authForm.confirmPassword = ''
     isAuthOpen.value = false
+    if (new URLSearchParams(window.location.search).get('identity') === '1'
+      && currentUser.value.realNameVerificationStatus !== 'APPROVED') {
+      openIdentity()
+    }
     const nextRoute = pendingRoute.value
     pendingRoute.value = null
     if (nextRoute) {
@@ -396,14 +452,18 @@ onMounted(() => {
   }
   const requestedNextRoute = getRequestedNextRoute()
   const shouldOpenAuth = new URLSearchParams(window.location.search).get('login') === '1'
+  const shouldOpenIdentity = new URLSearchParams(window.location.search).get('identity') === '1'
   getCurrentUser()
     .then((user) => {
       currentUser.value = user
+      if (user && shouldOpenIdentity && user.realNameVerificationStatus !== 'APPROVED') {
+        openIdentity()
+      }
       if (requestedNextRoute && user) {
         window.location.assign(requestedNextRoute)
         return
       }
-      if (!user && (shouldOpenAuth || requestedNextRoute)) {
+      if (!user && (shouldOpenAuth || shouldOpenIdentity || requestedNextRoute)) {
         openAuth('login', requestedNextRoute)
       }
     })
@@ -513,9 +573,12 @@ onBeforeUnmount(() => {
             <LoaderCircle :size="18" />
           </span>
           <template v-else-if="currentUser">
-            <a class="account-name" :href="profileRoute" :title="`${currentUser.email} · 维护个人主页`">
+            <a v-if="currentUser.realNameVerificationStatus === 'APPROVED'" class="account-name" :href="profileRoute" :title="`${currentUser.email} · 维护个人主页`">
               <UserRound :size="16" />{{ currentUser.displayName }}
             </a>
+            <button v-else type="button" class="account-name identity-trigger" :title="`${currentUser.email} · 实名认证`" @click="openIdentity">
+              <BadgeCheck :size="16" />{{ currentUser.displayName }}
+            </button>
             <button type="button" class="account-logout" aria-label="退出登录" @click="signOut">
               <LogOut :size="16" />
             </button>
@@ -606,14 +669,14 @@ onBeforeUnmount(() => {
           </label>
 
           <label v-if="authMode === 'register'" class="auth-field">
-            <span>真实姓名（选填）</span>
+            <span>真实姓名（选填，填写后进入审核）</span>
             <input
               v-model.trim="authForm.realName"
               name="realName"
               type="text"
               autocomplete="name"
               maxlength="80"
-              placeholder="可不填写"
+              placeholder="填写后由超级管理员审核"
             />
           </label>
 
@@ -676,6 +739,36 @@ onBeforeUnmount(() => {
               <span>{{ authSubmitText }}</span>
               <ArrowRight :size="19" />
             </template>
+          </button>
+        </form>
+      </section>
+    </div>
+
+    <div v-if="isIdentityOpen && currentUser" class="auth-overlay" @mousedown.self="closeIdentity">
+      <section class="auth-card identity-card" role="dialog" aria-modal="true" aria-labelledby="identity-title">
+        <span class="auth-staple" aria-hidden="true"></span>
+        <button type="button" class="auth-close" aria-label="关闭" @click="closeIdentity"><X :size="20" /></button>
+        <header class="auth-heading">
+          <span class="auth-folio">ID</span>
+          <div>
+            <h2 id="identity-title">实名认证</h2>
+            <p>通过后才会启用聊天个人记忆，并开放个人主页维护。</p>
+          </div>
+        </header>
+        <div class="identity-status" :data-status="currentUser.realNameVerificationStatus">
+          <span>{{ identityStatusCopy.label }}</span>
+          <p>{{ identityStatusCopy.copy }}</p>
+        </div>
+        <form v-if="currentUser.realNameVerificationStatus !== 'APPROVED'" class="auth-form" @submit.prevent="submitIdentity">
+          <label class="auth-field">
+            <span>真实姓名</span>
+            <input v-model="identityName" type="text" autocomplete="name" minlength="2" maxlength="80" placeholder="请输入真实姓名" />
+          </label>
+          <p v-if="identityError" class="auth-error" role="alert">{{ identityError }}</p>
+          <p v-if="identityMessage" class="identity-success" role="status">{{ identityMessage }}</p>
+          <button type="submit" class="auth-submit" :disabled="isIdentitySubmitting">
+            <LoaderCircle v-if="isIdentitySubmitting" class="is-spinning" :size="19" />
+            <template v-else><span>{{ currentUser.realNameVerificationStatus === 'PENDING' ? '更新并重新提交' : '提交审核' }}</span><ArrowRight :size="19" /></template>
           </button>
         </form>
       </section>

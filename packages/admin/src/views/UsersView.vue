@@ -21,7 +21,19 @@ const loading = ref(false)
 const result = ref<PageResponse<UserSummary>>({ items: [], page: 0, size: 20, totalElements: 0, totalPages: 0 })
 const selectedUserId = ref<string | null>(null)
 const drawerOpen = ref(false)
-const filters = reactive({ keyword: '', status: null as string | null, role: null as string | null })
+const filters = reactive({
+  keyword: '',
+  status: null as string | null,
+  role: null as string | null,
+  realNameVerificationStatus: null as string | null,
+})
+
+const verificationLabels: Record<UserSummary['realNameVerificationStatus'], string> = {
+  NOT_SUBMITTED: '未提交',
+  PENDING: '待审核',
+  APPROVED: '已通过',
+  REJECTED: '已驳回',
+}
 
 function formatTime(value: string | null) {
   if (!value) return '—'
@@ -36,6 +48,15 @@ const columns: DataTableColumns<UserSummary> = [
     render: (row) => h('div', { class: 'table-primary' }, [h('strong', row.displayName), h('span', row.email)]),
   },
   { title: '真实姓名', key: 'realName', width: 120, render: (row) => row.realName || '—' },
+  {
+    title: '实名认证',
+    key: 'realNameVerificationStatus',
+    width: 110,
+    render: (row) => h(NTag, {
+      type: row.realNameVerificationStatus === 'APPROVED' ? 'success' : row.realNameVerificationStatus === 'REJECTED' ? 'error' : row.realNameVerificationStatus === 'PENDING' ? 'warning' : 'default',
+      bordered: false,
+    }, { default: () => verificationLabels[row.realNameVerificationStatus] }),
+  },
   {
     title: '状态',
     key: 'status',
@@ -65,6 +86,7 @@ async function load(page = result.value.page) {
       keyword: filters.keyword.trim(),
       status: filters.status,
       role: filters.role,
+      realNameVerificationStatus: filters.realNameVerificationStatus,
       page,
       size: result.value.size,
     })
@@ -84,6 +106,7 @@ function resetFilters() {
   filters.keyword = ''
   filters.status = null
   filters.role = null
+  filters.realNameVerificationStatus = null
   load(0)
 }
 
@@ -102,6 +125,17 @@ onMounted(() => load(0))
           clearable
           placeholder="账号状态"
           :options="[{ label: '正常', value: 'ACTIVE' }, { label: '禁用', value: 'DISABLED' }]"
+        />
+        <n-select
+          v-model:value="filters.realNameVerificationStatus"
+          clearable
+          placeholder="实名认证"
+          :options="[
+            { label: '未提交', value: 'NOT_SUBMITTED' },
+            { label: '待审核', value: 'PENDING' },
+            { label: '已通过', value: 'APPROVED' },
+            { label: '已驳回', value: 'REJECTED' },
+          ]"
         />
         <n-select
           v-model:value="filters.role"
@@ -127,7 +161,7 @@ onMounted(() => load(0))
         itemCount: result.totalElements,
         onChange: (page: number) => load(page - 1),
       }"
-      :scroll-x="1100"
+      :scroll-x="1240"
       bordered
     />
 

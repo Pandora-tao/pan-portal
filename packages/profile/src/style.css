@@ -863,6 +863,27 @@ textarea:focus-visible {
   color: var(--sand);
 }
 
+.verification-card {
+  background: rgb(232 220 199 / 94%);
+  border: 1px solid rgb(96 108 56 / 24%);
+}
+
+.verification-card .eyebrow {
+  color: var(--terracotta);
+  font-weight: 800;
+  letter-spacing: 0.13em;
+  text-transform: uppercase;
+}
+
+.verification-card a {
+  margin-top: 10px;
+  padding: 11px 18px;
+  border-radius: 20px;
+  background: var(--moss);
+  color: var(--sand);
+  text-decoration: none;
+}
+
 .error-card {
   background: var(--oat);
 }

@@ -2,11 +2,9 @@ import { apiRequest } from './request'
 import type {
   MemoryStatus,
   MemoryType,
-  ProactiveCheckResponse,
   RelationshipExport,
   RelationshipMemory,
   RelationshipOverview,
-  RelationshipPreferences,
 } from '../types/relationship'
 
 export const relationshipApi = {
@@ -36,15 +34,17 @@ export const relationshipApi = {
   restoreMemory: (id: string) => apiRequest<RelationshipMemory>(`/api/relationship/memories/${id}/restore`, {
     method: 'POST',
   }),
-  updatePreferences: (body: Pick<RelationshipPreferences,
-    'proactiveEnabled' | 'proactiveFrequency' | 'quietStart' | 'quietEnd' | 'timezone'>) =>
-    apiRequest<RelationshipPreferences>('/api/relationship/preferences', {
-      method: 'PATCH',
-      body: JSON.stringify(body),
-    }),
-  checkProactive: () => apiRequest<ProactiveCheckResponse>('/api/relationship/proactive/check', {
+  confirmMemory: (id: string) => apiRequest<RelationshipMemory>(`/api/relationship/memories/${id}/confirm`, {
     method: 'POST',
   }),
+  rejectMemory: (id: string) => apiRequest<RelationshipMemory>(`/api/relationship/memories/${id}/reject`, {
+    method: 'POST',
+  }),
+  updateOpenLoopStatus: (id: string, status: 'OPEN' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED') =>
+    apiRequest<RelationshipMemory>(`/api/relationship/memories/${id}/open-loop`, {
+      method: 'PATCH',
+      body: JSON.stringify({ status }),
+    }),
   exportData: () => apiRequest<RelationshipExport>('/api/relationship/export'),
   deleteAll: (confirmation: string) => apiRequest<void>('/api/relationship', {
     method: 'DELETE',

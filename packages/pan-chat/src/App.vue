@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import { gsap } from 'gsap'
-import { Brain, CloudOff, Home, LoaderCircle, Square } from 'lucide-vue-next'
+import { BadgeCheck, Brain, CloudOff, Home, LoaderCircle, Square } from 'lucide-vue-next'
 import avatarUrl from '../../portal/src/assets/pan-avatar.png'
 import ChatInput from './components/ChatInput.vue'
 import MessageList from './components/MessageList.vue'
@@ -20,10 +20,16 @@ const {
   continuityLabel,
   feedbackEnabled,
   feedbackSubmittingId,
+  loadingEarlier,
+  hasEarlierMessages,
   error,
   guestNotice,
   loginHref,
+  identityHref,
+  personalizationEnabled,
+  personalizationNotice,
   sendMessage,
+  loadEarlierMessages,
   regenerateMessage,
   rateMessage,
   submitProblemFeedback,
@@ -110,7 +116,7 @@ onUnmounted(() => {
             <Square :size="15" />
           </button>
           <button
-            v-if="!isGuest && !loading"
+            v-if="personalizationEnabled && !loading"
             type="button"
             class="icon-action"
             aria-label="查看记忆与关系数据"
@@ -132,6 +138,11 @@ onUnmounted(() => {
             <span>{{ guestNotice }}</span>
             <a :href="loginHref">登录</a>
           </div>
+          <div v-else-if="!loading && !personalizationEnabled" class="chat-mode-notice identity-notice" role="status">
+            <BadgeCheck :size="15" aria-hidden="true" />
+            <span>{{ personalizationNotice }}</span>
+            <a :href="identityHref">实名认证</a>
+          </div>
 
           <div v-if="loading" class="chat-loading" role="status">
             <LoaderCircle :size="20" class="spin" />
@@ -142,6 +153,9 @@ onUnmounted(() => {
             :messages="messages"
             :feedback-enabled="feedbackEnabled"
             :feedback-submitting-id="feedbackSubmittingId"
+            :loading-earlier="loadingEarlier"
+            :has-more="hasEarlierMessages"
+            @load-earlier="loadEarlierMessages"
             @regenerate="regenerateMessage"
             @rate="rateMessage"
             @feedback="submitProblemFeedback"

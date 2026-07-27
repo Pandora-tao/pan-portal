@@ -158,6 +158,22 @@ pnpm build
 
 Build warnings from Rollup about third-party `/* #__PURE__ */` comments in `@vueuse/core` have appeared before and were non-fatal.
 
+## Required test deployment
+
+After completing any frontend or backend source-code change, deploy the complete
+current working tree to the isolated test environment before handing the change
+back to the user:
+
+```bash
+../pan-portal-backend/deploy/test/deploy-pan-portal-test.sh
+```
+
+The command must pass its backend health, PostgreSQL identity, and all static
+route checks. The user-facing test entry is `https://pan5.xyz:18081/`.
+
+Do not deploy to production unless the user explicitly requests it. A test
+deployment does not authorize committing or pushing unrelated working-tree changes.
+
 ## Git And Files
 
 - Do not delete or overwrite user-created files unless explicitly requested.

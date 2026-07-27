@@ -1,6 +1,8 @@
 import type {
   AdminMe,
+  AdminProfileData,
   AdminPrizeRecord,
+  AdminRelationshipData,
   AuditView,
   ConversationDetail,
   ConversationSummary,
@@ -68,6 +70,11 @@ export const adminApi = {
   user: (id: string) => request<UserDetail>(`/api/admin/users/${id}`),
   updateProfile: (id: string, body: { displayName: string; realName: string | null }) =>
     request<UserSummary>(`/api/admin/users/${id}/profile`, { method: 'PATCH', body: JSON.stringify(body) }),
+  reviewRealName: (id: string, decision: 'approve' | 'reject', reason: string) =>
+    request<UserSummary>(`/api/admin/users/${id}/real-name-verification/${decision}`, {
+      method: 'POST',
+      body: JSON.stringify({ reason }),
+    }),
   userAction: (id: string, action: 'disable' | 'enable' | 'sessions/revoke', reason: string) =>
     request<UserSummary | void>(`/api/admin/users/${id}/${action}`, {
       method: 'POST',
@@ -82,6 +89,41 @@ export const adminApi = {
     request<{ resetUrl: string; expiresAt: string }>(`/api/admin/users/${id}/password-reset`, {
       method: 'POST',
       body: JSON.stringify({ reason }),
+    }),
+  accessPrivateProfile: (id: string, purpose: string) =>
+    request<AdminProfileData>(`/api/admin/users/${id}/private-data/profile/access`, {
+      method: 'POST',
+      body: JSON.stringify({ purpose }),
+    }),
+  exportPrivateProfile: (id: string, purpose: string) =>
+    request<AdminProfileData>(`/api/admin/users/${id}/private-data/profile/export`, {
+      method: 'POST',
+      body: JSON.stringify({ purpose }),
+    }),
+  deletePrivateProfile: (id: string, purpose: string, confirmation: string) =>
+    request<void>(`/api/admin/users/${id}/private-data/profile`, {
+      method: 'DELETE',
+      body: JSON.stringify({ purpose, confirmation }),
+    }),
+  accessRelationshipData: (id: string, purpose: string) =>
+    request<AdminRelationshipData>(`/api/admin/users/${id}/private-data/relationship/access`, {
+      method: 'POST',
+      body: JSON.stringify({ purpose }),
+    }),
+  exportRelationshipData: (id: string, purpose: string) =>
+    request<AdminRelationshipData>(`/api/admin/users/${id}/private-data/relationship/export`, {
+      method: 'POST',
+      body: JSON.stringify({ purpose }),
+    }),
+  setRelationshipMemoryStatus: (id: string, memoryId: string, action: 'forget' | 'restore', purpose: string) =>
+    request<AdminRelationshipData['memories'][number]>(
+      `/api/admin/users/${id}/private-data/relationship/memories/${memoryId}/${action}`,
+      { method: 'POST', body: JSON.stringify({ purpose }) },
+    ),
+  deleteRelationshipData: (id: string, purpose: string, confirmation: string) =>
+    request<void>(`/api/admin/users/${id}/private-data/relationship`, {
+      method: 'DELETE',
+      body: JSON.stringify({ purpose, confirmation }),
     }),
   superAdmins: () => request<UserSummary[]>('/api/admin/super-admins'),
   conversations: (params: Record<string, string | number | null | undefined>) =>

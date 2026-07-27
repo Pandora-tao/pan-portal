@@ -327,6 +327,48 @@ button {
   align-self: stretch;
   min-width: 0;
   will-change: transform, opacity;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 96px;
+}
+
+.earlier-message-status,
+.message-date-separator {
+  align-self: center;
+  margin: 0;
+  color: #7b7b80;
+  font-size: 11px;
+}
+
+.message-date-separator {
+  display: flex;
+  align-items: center;
+  width: min(100%, 520px);
+  gap: 10px;
+}
+
+.message-date-separator::before,
+.message-date-separator::after {
+  flex: 1;
+  height: 1px;
+  content: "";
+  background: rgb(60 60 67 / 12%);
+}
+
+.back-to-bottom {
+  position: sticky;
+  bottom: 4px;
+  align-self: center;
+  z-index: 2;
+  min-height: 34px;
+  padding: 0 13px;
+  border: 1px solid rgb(60 60 67 / 13%);
+  border-radius: 999px;
+  color: #4e4e53;
+  background: rgb(255 255 255 / 90%);
+  box-shadow: 0 8px 22px rgb(36 36 40 / 13%);
+  backdrop-filter: blur(12px);
+  font-size: 12px;
+  font-weight: 700;
 }
 
 .message-row.is-user {

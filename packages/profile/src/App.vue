@@ -3,6 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import {
   ArrowLeft,
   Award,
+  BadgeCheck,
   Check,
   Copy,
   Eye,
@@ -24,6 +25,7 @@ const isPublicView = Boolean(publicUserId)
 const isLoading = ref(true)
 const isSaving = ref(false)
 const loadError = ref('')
+const verificationBlocked = ref(false)
 const formError = ref('')
 const savedMessage = ref('')
 const interestInput = ref('')
@@ -53,6 +55,7 @@ function emptyProfile(): UserProfile {
 async function loadProfile() {
   isLoading.value = true
   loadError.value = ''
+  verificationBlocked.value = false
   try {
     profile.value = isPublicView
       ? await getPublishedProfile(publicUserId)
@@ -60,6 +63,10 @@ async function loadProfile() {
   } catch (error) {
     if (!isPublicView && error instanceof ApiError && error.status === 401) {
       window.location.replace('/?login=1&next=%2Fprofile%2F')
+      return
+    }
+    if (!isPublicView && error instanceof ApiError && error.status === 403) {
+      verificationBlocked.value = true
       return
     }
     loadError.value = error instanceof Error ? error.message : '个人主页加载失败'
@@ -206,7 +213,7 @@ onMounted(loadProfile)
         返回首页
       </a>
       <p>Pan Portal</p>
-      <div v-if="!isPublicView && !isLoading && !loadError" class="bar-actions">
+      <div v-if="!isPublicView && !isLoading && !loadError && !verificationBlocked" class="bar-actions">
         <button type="button" :disabled="!profile.published" @click="copyPublicUrl">
           <Copy :size="17" />
           复制链接
@@ -227,6 +234,14 @@ onMounted(loadProfile)
       <h1>无法打开个人主页</h1>
       <p>{{ loadError }}</p>
       <button type="button" @click="loadProfile">重新加载</button>
+    </section>
+
+    <section v-else-if="verificationBlocked" class="state-card verification-card">
+      <BadgeCheck :size="42" :stroke-width="1.5" />
+      <p class="eyebrow">身份确认</p>
+      <h1>实名认证通过后开放个人主页</h1>
+      <p>提交真实姓名并等待超级管理员审核。通过后，你就可以维护和公开这张属于自己的主页。</p>
+      <a href="/?identity=1">前往实名认证</a>
     </section>
 
     <section v-else-if="isPublicView" class="public-stage">

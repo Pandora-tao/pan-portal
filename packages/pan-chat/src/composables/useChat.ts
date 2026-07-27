@@ -2,22 +2,24 @@ import { computed, onMounted, ref } from 'vue'
 import { streamLegacyChat } from '../api/chat'
 import {
   createSession,
+  createPersistentGeneration,
+  createPersistentRegeneration,
+  getGeneration,
   getCurrentUser,
   listMessages,
   listSessions,
-  regenerateSessionMessage,
   saveMessageFeedback,
-  streamSessionMessage,
+  observeGeneration,
+  stopGeneration,
 } from '../api/chatPersistence'
 import { relationshipApi } from '../api/relationship'
 import { isUnauthorizedError } from '../api/request'
 import { SseEventError } from '../api/sse'
 import type {
   ChatMessage,
+  ChatGenerationSnapshot,
   ChatStreamDeltaEvent,
-  ChatStreamDoneEvent,
   ChatStreamErrorEvent,
-  ChatStreamStartEvent,
   FeedbackRating,
   LegacyChatResponse,
   MessageFeedbackInput,
@@ -25,31 +27,44 @@ import type {
 } from '../types/chat'
 import type { RelationshipOverview } from '../types/relationship'
 import { normalizeAssistantContents } from '../utils/assistantMessages'
-import { createId } from '../utils/id'
+import { createId, createUuid } from '../utils/id'
 import { isEmptyMessage, isMessageTooLong, normalizeMessageContent } from '../utils/text'
 
 type ChatMode = 'loading' | 'guest' | 'account'
 
 const GUEST_NOTICE = '当前为临时对话，刷新后不会保留。登录后只保存新的对话。'
 const EXPIRED_NOTICE = '登录已过期，已切换为临时对话；新的内容不会保存。'
+const PENDING_GENERATIONS_KEY = 'pan-chat-pending-generations-v1'
 
 export function useChat() {
   const messages = ref<ChatMessage[]>([])
   const mode = ref<ChatMode>('loading')
   const currentSessionId = ref<string | null>(null)
   const relationshipOverview = ref<RelationshipOverview | null>(null)
+  const realNameVerificationStatus = ref<'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED' | null>(null)
   const sending = ref(false)
   const feedbackSubmittingId = ref<string | null>(null)
+  const loadingEarlier = ref(false)
+  const hasEarlierMessages = ref(false)
   const error = ref<string | null>(null)
   const guestNotice = ref(GUEST_NOTICE)
   let currentController: AbortController | null = null
   let currentAssistantId: string | null = null
   let abortedByUser = false
+  let nextMessageCursor: string | null = null
+  let currentGenerationId: string | null = null
 
   const loading = computed(() => mode.value === 'loading')
   const isGuest = computed(() => mode.value === 'guest')
   const feedbackEnabled = computed(() => mode.value === 'account')
   const loginHref = computed(() => '/?login=1&next=%2Fchat%2F')
+  const identityHref = computed(() => '/?identity=1')
+  const personalizationEnabled = computed(() => realNameVerificationStatus.value === 'APPROVED')
+  const personalizationNotice = computed(() => {
+    if (realNameVerificationStatus.value === 'PENDING') return '实名认证正在审核。通过后将启用个人记忆和个人主页。'
+    if (realNameVerificationStatus.value === 'REJECTED') return '实名认证未通过。重新提交后可继续审核。'
+    return '完成实名认证并通过审核后，将启用个人记忆和个人主页。'
+  })
   const continuityLabel = computed(() => formatContinuityLabel(
     relationshipOverview.value?.lastInteractionAt ?? null,
     mode.value,
@@ -69,10 +84,9 @@ export function useChat() {
       }
 
       mode.value = 'account'
-      const [sessions, overview] = await Promise.all([
-        listSessions(),
-        relationshipApi.overview(),
-      ])
+      realNameVerificationStatus.value = user.realNameVerificationStatus
+      const sessions = await listSessions()
+      const overview = personalizationEnabled.value ? await relationshipApi.overview() : null
       relationshipOverview.value = overview
       const latestSession = sessions[0]
 
@@ -83,19 +97,11 @@ export function useChat() {
       }
 
       currentSessionId.value = latestSession.id
-      try {
-        const proactive = await relationshipApi.checkProactive()
-        const lastProactive = proactive.messages.at(-1)
-        if (lastProactive) {
-          relationshipOverview.value = {
-            ...overview,
-            lastInteractionAt: lastProactive.createdAt,
-          }
-        }
-      } catch {
-        // 主动联系只是增强能力，不能阻断用户进入已有聊天。
-      }
-      messages.value = (await listMessages(latestSession.id)).map(toChatMessage)
+      const page = await listMessages(latestSession.id)
+      messages.value = page.items.map(toChatMessage)
+      nextMessageCursor = page.nextCursor
+      hasEarlierMessages.value = page.hasMore
+      await recoverPendingGeneration(latestSession.id)
     } catch (caught) {
       if (isUnauthorizedError(caught)) {
         enterGuestMode(EXPIRED_NOTICE)
@@ -117,16 +123,70 @@ export function useChat() {
     }
 
     error.value = null
-    const userMessage = createTemporaryMessage('user', content, 'completed')
+    const clientMessageId = createUuid()
+    const userMessage = createTemporaryMessage('user', content, 'completed', clientMessageId)
     const assistantMessage = createTemporaryMessage('assistant', '', 'pending')
     messages.value = [...messages.value, userMessage, assistantMessage]
     await runGeneration(assistantMessage.id, async (signal) => {
       if (mode.value === 'account') {
-        await streamAccountMessage(content, userMessage.id, assistantMessage.id, signal)
+        await streamAccountMessage(content, clientMessageId, userMessage.id, assistantMessage.id, signal)
       } else {
         await streamGuestMessage(assistantMessage.id, buildGuestHistory(), signal)
       }
     })
+  }
+
+  async function loadEarlierMessages() {
+    if (mode.value !== 'account' || !currentSessionId.value || !nextMessageCursor
+      || !hasEarlierMessages.value || loadingEarlier.value) return
+    const requestedCursor = nextMessageCursor
+    loadingEarlier.value = true
+    try {
+      const page = await listMessages(currentSessionId.value, requestedCursor)
+      const merged = [...page.items.map(toChatMessage), ...messages.value]
+      const seen = new Set<string>()
+      messages.value = merged.filter((message) => {
+        if (seen.has(message.id)) return false
+        seen.add(message.id)
+        return true
+      })
+      nextMessageCursor = page.nextCursor
+      hasEarlierMessages.value = page.hasMore
+    } catch (caught) {
+      error.value = caught instanceof Error ? caught.message : '更早的消息加载失败。'
+    } finally {
+      loadingEarlier.value = false
+    }
+  }
+
+  async function recoverPendingGeneration(sessionId: string) {
+    const stored = readPendingGenerations()
+      .filter((item) => item.sessionId === sessionId)
+      .sort((left, right) => left.createdAt.localeCompare(right.createdAt))
+      .at(-1)
+    const pendingMessage = [...messages.value].reverse().find(message =>
+      message.role === 'assistant' && ['pending', 'streaming'].includes(message.status)
+      && message.generationId,
+    )
+    if (!stored && !pendingMessage?.generationId) return
+    try {
+      const snapshot = stored?.generationId
+        ? await getGeneration(stored.generationId)
+        : stored
+          ? await createPersistentGeneration(sessionId, stored.clientMessageId, stored.content)
+          : await getGeneration(pendingMessage!.generationId!)
+      if (stored) savePendingGeneration({ ...stored, generationId: snapshot.generationId })
+      mergeGenerationSnapshot(snapshot, null, null)
+      if (isTerminal(snapshot)) {
+        removePendingGeneration(snapshot.generationId)
+        return
+      }
+      const assistantId = snapshot.assistantMessages[0]?.id ?? createId('recovering')
+      currentGenerationId = snapshot.generationId
+      await runGeneration(assistantId, signal => observeWithRecovery(snapshot.generationId, signal))
+    } catch (caught) {
+      error.value = caught instanceof Error ? caught.message : '正在生成的回复暂时无法恢复。'
+    }
   }
 
   async function regenerateMessage(messageId: string) {
@@ -194,6 +254,17 @@ export function useChat() {
         return
       }
 
+      if (caught instanceof PendingConfirmationError) {
+        error.value = caught.message
+        if (currentAssistantId) {
+          updateMessage(currentAssistantId, {
+            content: '正在确认发送状态，恢复网络或刷新页面后会自动对账。',
+            status: 'pending',
+          })
+        }
+        return
+      }
+
       const streamError = caught instanceof SseEventError
         ? caught.payload as ChatStreamErrorEvent
         : null
@@ -221,6 +292,7 @@ export function useChat() {
       }
       currentController = null
       currentAssistantId = null
+      currentGenerationId = null
     }
   }
 
@@ -256,51 +328,132 @@ export function useChat() {
 
   async function streamAccountMessage(
     content: string,
+    clientMessageId: string,
     temporaryUserId: string,
     temporaryAssistantId: string,
     signal: AbortSignal,
   ) {
     if (!currentSessionId.value) currentSessionId.value = (await createSession()).id
-    await streamSessionMessage(currentSessionId.value, content, (event, payload) => {
-      handleAccountStreamEvent(event, payload, temporaryUserId, temporaryAssistantId)
-    }, signal)
+    const pending: PendingGeneration = {
+      sessionId: currentSessionId.value,
+      clientMessageId,
+      content,
+      createdAt: new Date().toISOString(),
+      generationId: null,
+    }
+    savePendingGeneration(pending)
+    let snapshot: ChatGenerationSnapshot | null = null
+    let lastError: unknown = null
+    for (let attempt = 0; attempt < 3 && !signal.aborted; attempt += 1) {
+      try {
+        snapshot = await createPersistentGeneration(
+          currentSessionId.value, clientMessageId, content, signal,
+        )
+        break
+      } catch (caught) {
+        if (isUnauthorizedError(caught) || signal.aborted) throw caught
+        lastError = caught
+        if (attempt < 2) await delay(700, signal)
+      }
+    }
+    if (!snapshot) {
+      throw new PendingConfirmationError(
+        lastError instanceof Error
+          ? `发送结果尚未确认：${lastError.message}`
+          : '发送结果尚未确认，恢复网络或刷新页面后会自动对账。',
+      )
+    }
+    currentGenerationId = snapshot.generationId
+    savePendingGeneration({ ...pending, generationId: snapshot.generationId })
+    mergeGenerationSnapshot(snapshot, temporaryUserId, temporaryAssistantId)
+    await observeWithRecovery(snapshot.generationId, signal)
   }
 
   async function streamAccountRegeneration(messageId: string, signal: AbortSignal) {
     if (!currentSessionId.value) return
-    await regenerateSessionMessage(currentSessionId.value, messageId, (event, payload) => {
-      handleAccountStreamEvent(event, payload, null, messageId)
-    }, signal)
-  }
-
-  function handleAccountStreamEvent(
-    event: string,
-    payload: unknown,
-    temporaryUserId: string | null,
-    temporaryAssistantId: string,
-  ) {
-    if (event === 'start') {
-      const start = payload as ChatStreamStartEvent
-      const assistant = toChatMessage(start.assistantMessage)
-      currentAssistantId = assistant.id
-      messages.value = messages.value.flatMap((message) => {
-        if (temporaryUserId && message.id === temporaryUserId && start.userMessage) {
-          return [toChatMessage(start.userMessage)]
-        }
-        if (message.id === temporaryAssistantId) return [assistant]
-        return [message]
-      })
-    }
-    if (event === 'delta') {
-      const delta = payload as ChatStreamDeltaEvent
-      appendDelta(delta.messageId ?? currentAssistantId ?? temporaryAssistantId, delta.delta)
-    }
-    if (event === 'done') {
-      const done = payload as ChatStreamDoneEvent
-      if (currentAssistantId) {
-        replaceMessage(currentAssistantId, done.assistantMessages.map(toChatMessage))
+    const clientRequestId = createUuid()
+    let snapshot: ChatGenerationSnapshot | null = null
+    let lastError: unknown = null
+    for (let attempt = 0; attempt < 3 && !signal.aborted; attempt += 1) {
+      try {
+        snapshot = await createPersistentRegeneration(
+          currentSessionId.value, messageId, clientRequestId, signal,
+        )
+        break
+      } catch (caught) {
+        if (isUnauthorizedError(caught) || signal.aborted) throw caught
+        lastError = caught
+        if (attempt < 2) await delay(700, signal)
       }
     }
+    if (!snapshot) {
+      throw new PendingConfirmationError(
+        lastError instanceof Error ? lastError.message : '重新生成请求尚未确认，请稍后重试。',
+      )
+    }
+    currentGenerationId = snapshot.generationId
+    mergeGenerationSnapshot(snapshot, null, messageId)
+    await observeWithRecovery(snapshot.generationId, signal)
+  }
+
+  async function observeWithRecovery(generationId: string, signal: AbortSignal) {
+    let reconnects = 0
+    while (!signal.aborted) {
+      try {
+        await observeGeneration(generationId, (event, payload) => {
+          if (event !== 'generation') return
+          const snapshot = payload as ChatGenerationSnapshot
+          mergeGenerationSnapshot(snapshot, null, null)
+          if (isTerminal(snapshot)) removePendingGeneration(generationId)
+        }, signal)
+        const snapshot = await getGeneration(generationId)
+        mergeGenerationSnapshot(snapshot, null, null)
+        if (isTerminal(snapshot)) {
+          removePendingGeneration(generationId)
+          return
+        }
+      } catch (caught) {
+        if (signal.aborted) throw caught
+        const snapshot = await getGeneration(generationId).catch(() => null)
+        if (snapshot) {
+          mergeGenerationSnapshot(snapshot, null, null)
+          if (isTerminal(snapshot)) {
+            removePendingGeneration(generationId)
+            return
+          }
+        }
+      }
+      reconnects += 1
+      error.value = `连接暂时中断，正在恢复${reconnects > 1 ? `（${reconnects}）` : ''}…`
+      await delay(700, signal)
+    }
+  }
+
+  function mergeGenerationSnapshot(
+    snapshot: ChatGenerationSnapshot,
+    temporaryUserId: string | null,
+    temporaryAssistantId: string | null,
+  ) {
+    const userMessage = snapshot.userMessage ? toChatMessage(snapshot.userMessage) : null
+    const assistants = snapshot.assistantMessages.map(toChatMessage)
+    const incoming = [...(userMessage ? [userMessage] : []), ...assistants]
+    if (!incoming.length) return
+    const incomingIds = new Set(incoming.map((message) => message.id))
+    let insertionIndex = messages.value.findIndex((message) =>
+      message.id === temporaryUserId || message.id === temporaryAssistantId || incomingIds.has(message.id)
+      || Boolean(userMessage?.clientMessageId && message.clientMessageId === userMessage.clientMessageId),
+    )
+    if (insertionIndex < 0) insertionIndex = messages.value.length
+    const retained = messages.value.filter((message) =>
+      message.id !== temporaryUserId && message.id !== temporaryAssistantId && !incomingIds.has(message.id)
+      && !(userMessage?.clientMessageId && message.clientMessageId === userMessage.clientMessageId),
+    )
+    const safeIndex = Math.min(insertionIndex, retained.length)
+    messages.value = [...retained.slice(0, safeIndex), ...incoming, ...retained.slice(safeIndex)]
+    const assistant = assistants.at(-1)
+    if (assistant) currentAssistantId = assistant.id
+    if (snapshot.status === 'FAILED') error.value = '消息生成失败，可以重新生成。'
+    if (snapshot.status === 'COMPLETED') error.value = null
   }
 
   function buildGuestHistory() {
@@ -359,6 +512,12 @@ export function useChat() {
   function stopGenerating() {
     if (!sending.value || !currentController) return
     abortedByUser = true
+    if (currentGenerationId) {
+      void stopGeneration(currentGenerationId).then(snapshot => {
+        mergeGenerationSnapshot(snapshot, null, null)
+        removePendingGeneration(snapshot.generationId)
+      }).catch(() => undefined)
+    }
     currentController.abort()
   }
 
@@ -366,7 +525,10 @@ export function useChat() {
     mode.value = 'guest'
     currentSessionId.value = null
     relationshipOverview.value = null
+    realNameVerificationStatus.value = null
     messages.value = []
+    nextMessageCursor = null
+    hasEarlierMessages.value = false
     guestNotice.value = notice
   }
 
@@ -374,8 +536,11 @@ export function useChat() {
     role: ChatMessage['role'],
     content: string,
     status: ChatMessage['status'],
+    clientMessageId?: string,
   ): ChatMessage {
-    return { id: createId('msg'), role, content, status, createdAt: new Date().toISOString() }
+    return {
+      id: createId('msg'), role, content, status, createdAt: new Date().toISOString(), clientMessageId,
+    }
   }
 
   function updateMessage(messageId: string, patch: Partial<ChatMessage>) {
@@ -393,6 +558,8 @@ export function useChat() {
   function toChatMessage(message: PersistedChatMessage): ChatMessage {
     return {
       id: message.id,
+      clientMessageId: message.clientMessageId,
+      generationId: message.generationId,
       role: message.role,
       content: message.content,
       status: message.status,
@@ -413,15 +580,80 @@ export function useChat() {
     continuityLabel,
     feedbackEnabled,
     feedbackSubmittingId,
+    loadingEarlier,
+    hasEarlierMessages,
     error,
     guestNotice,
     loginHref,
+    identityHref,
+    personalizationEnabled,
+    personalizationNotice,
     sendMessage,
+    loadEarlierMessages,
     regenerateMessage,
     rateMessage,
     submitProblemFeedback,
     stopGenerating,
   }
+}
+
+interface PendingGeneration {
+  sessionId: string
+  clientMessageId: string
+  content: string
+  createdAt: string
+  generationId: string | null
+}
+
+class PendingConfirmationError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'PendingConfirmationError'
+  }
+}
+
+function readPendingGenerations(): PendingGeneration[] {
+  try {
+    const parsed = JSON.parse(localStorage.getItem(PENDING_GENERATIONS_KEY) ?? '[]')
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function savePendingGeneration(pending: PendingGeneration) {
+  const existing = readPendingGenerations().filter((item) =>
+    item.clientMessageId !== pending.clientMessageId && item.generationId !== pending.generationId,
+  )
+  try {
+    localStorage.setItem(PENDING_GENERATIONS_KEY, JSON.stringify([...existing, pending].slice(-10)))
+  } catch {
+    // Private browsing or a full storage quota must not block message delivery.
+  }
+}
+
+function removePendingGeneration(generationId: string) {
+  try {
+    localStorage.setItem(PENDING_GENERATIONS_KEY, JSON.stringify(
+      readPendingGenerations().filter((item) => item.generationId !== generationId),
+    ))
+  } catch {
+    // Reconciliation still works from the server-side pending assistant message.
+  }
+}
+
+function isTerminal(snapshot: ChatGenerationSnapshot) {
+  return ['COMPLETED', 'FAILED', 'STOPPED'].includes(snapshot.status)
+}
+
+function delay(ms: number, signal: AbortSignal) {
+  return new Promise<void>((resolve, reject) => {
+    const timeout = window.setTimeout(resolve, ms)
+    signal.addEventListener('abort', () => {
+      window.clearTimeout(timeout)
+      reject(new DOMException('Aborted', 'AbortError'))
+    }, { once: true })
+  })
 }
 
 function parseMessagePresentation(content: string): Pick<ChatMessage, 'contentType' | 'stickerKey'> {

@@ -2,8 +2,9 @@ import { apiRequest, isUnauthorizedError } from './request'
 import { streamSse } from './sse'
 import type {
   ChatSession,
+  ChatMessagePage,
+  ChatGenerationSnapshot,
   PersistedChatMessage,
-  SendMessageResponse,
   UserInfo,
   MessageFeedbackInput,
 } from '../types/chat'
@@ -30,46 +31,60 @@ export function createSession(): Promise<ChatSession> {
   })
 }
 
-export function listMessages(sessionId: string): Promise<PersistedChatMessage[]> {
-  return apiRequest<PersistedChatMessage[]>(`/api/chat/sessions/${sessionId}/messages`)
+export function listMessages(
+  sessionId: string,
+  before?: string | null,
+  limit = 50,
+): Promise<ChatMessagePage> {
+  const params = new URLSearchParams({ limit: String(limit) })
+  if (before) params.set('before', before)
+  return apiRequest<ChatMessagePage>(`/api/chat/sessions/${sessionId}/messages?${params}`)
 }
 
-export function sendSessionMessage(
+export function createPersistentGeneration(
   sessionId: string,
+  clientMessageId: string,
   content: string,
   signal?: AbortSignal,
-): Promise<SendMessageResponse> {
-  return apiRequest<SendMessageResponse>(`/api/chat/sessions/${sessionId}/messages`, {
+): Promise<ChatGenerationSnapshot> {
+  return apiRequest<ChatGenerationSnapshot>(`/api/chat/sessions/${sessionId}/messages`, {
     method: 'POST',
-    body: JSON.stringify({ content }),
+    body: JSON.stringify({ clientMessageId, content }),
     signal,
   })
 }
 
-export function streamSessionMessage(
+export function createPersistentRegeneration(
   sessionId: string,
-  content: string,
+  messageId: string,
+  clientRequestId: string,
+  signal?: AbortSignal,
+): Promise<ChatGenerationSnapshot> {
+  return apiRequest<ChatGenerationSnapshot>(
+    `/api/chat/sessions/${sessionId}/messages/${messageId}/generations`,
+    { method: 'POST', body: JSON.stringify({ clientRequestId }), signal },
+  )
+}
+
+export function getGeneration(generationId: string): Promise<ChatGenerationSnapshot> {
+  return apiRequest<ChatGenerationSnapshot>(`/api/chat/generations/${generationId}`)
+}
+
+export function observeGeneration(
+  generationId: string,
   onEvent: (event: string, payload: unknown) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  return streamSse(`/api/chat/sessions/${sessionId}/messages/stream`, {
-    method: 'POST',
-    body: JSON.stringify({ content }),
+  return streamSse(`/api/chat/generations/${generationId}/stream`, {
+    method: 'GET',
     signal,
   }, onEvent)
 }
 
-export function regenerateSessionMessage(
-  sessionId: string,
-  messageId: string,
-  onEvent: (event: string, payload: unknown) => void,
-  signal?: AbortSignal,
-): Promise<void> {
-  return streamSse(
-    `/api/chat/sessions/${sessionId}/messages/${messageId}/regenerate/stream`,
-    { method: 'POST', body: JSON.stringify({}), signal },
-    onEvent,
-  )
+export function stopGeneration(generationId: string): Promise<ChatGenerationSnapshot> {
+  return apiRequest<ChatGenerationSnapshot>(`/api/chat/generations/${generationId}/stop`, {
+    method: 'POST',
+  })
 }
 
 export function saveMessageFeedback(

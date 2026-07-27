@@ -210,6 +210,7 @@ onUnmounted(() => {
   <article
     ref="rowRef"
     class="message-row"
+    :data-message-id="message.id"
     :class="[`is-${message.role}`, `is-${message.status}`, {
       'is-grouped': grouped,
       'is-sticker': message.contentType === 'STICKER',

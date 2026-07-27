@@ -14,6 +14,8 @@ export type MessageOrigin = 'REACTIVE' | 'PROACTIVE'
 
 export interface ChatMessage {
   id: string
+  clientMessageId?: string | null
+  generationId?: string | null
   role: ChatRole
   content: string
   status: MessageStatus
@@ -55,8 +57,28 @@ export interface ChatSession {
 
 export interface PersistedChatMessage extends ChatMessage {
   sessionId: string
+  clientMessageId?: string | null
+  generationId?: string | null
   updatedAt?: string
   metadata?: ChatMessageMetadata
+}
+
+export type GenerationStatus = 'QUEUED' | 'RUNNING' | 'COMPLETED' | 'FAILED' | 'STOPPED'
+
+export interface ChatGenerationSnapshot {
+  generationId: string
+  status: GenerationStatus
+  userMessage: PersistedChatMessage | null
+  assistantMessages: PersistedChatMessage[]
+  errorCode: string | null
+  retryable: boolean
+  updatedAt: string
+}
+
+export interface ChatMessagePage {
+  items: PersistedChatMessage[]
+  nextCursor: string | null
+  hasMore: boolean
 }
 
 export interface ChatMessageMetadata {
@@ -80,18 +102,9 @@ export interface MessageFeedbackInput {
   comment?: string
 }
 
-export interface ChatStreamStartEvent {
-  userMessage?: PersistedChatMessage | null
-  assistantMessage: PersistedChatMessage
-}
-
 export interface ChatStreamDeltaEvent {
   messageId?: string
   delta: string
-}
-
-export interface ChatStreamDoneEvent {
-  assistantMessages: PersistedChatMessage[]
 }
 
 export interface ChatStreamErrorEvent {
@@ -100,16 +113,13 @@ export interface ChatStreamErrorEvent {
   retryable: boolean
 }
 
-export interface SendMessageResponse {
-  userMessage: PersistedChatMessage
-  assistantMessage?: PersistedChatMessage
-  assistantMessages?: PersistedChatMessage[]
-}
-
 export interface UserInfo {
   id: string
   email: string
   displayName: string
   realName: string | null
+  realNameVerificationStatus: 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'
+  realNameVerifiedAt: string | null
+  realNameReviewReason: string | null
   createdAt: string
 }

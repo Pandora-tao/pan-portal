@@ -5,12 +5,14 @@ import {
   Brain,
   CalendarClock,
   Check,
+  CircleAlert,
   Download,
+  GitBranch,
+  Link2,
   LoaderCircle,
   Pencil,
   Plus,
   Save,
-  Sparkles,
   Trash2,
   X,
 } from 'lucide-vue-next'
@@ -18,16 +20,14 @@ import { relationshipApi } from '../api/relationship'
 import type {
   MemoryStatus,
   MemoryType,
-  ProactiveFrequency,
   RelationshipMemory,
   RelationshipOverview,
-  RelationshipPreferences,
 } from '../types/relationship'
 
 const props = defineProps<{ open: boolean }>()
 const emit = defineEmits<{ close: []; deleted: [] }>()
 
-type PanelTab = 'memories' | 'proactive' | 'data'
+type PanelTab = 'memories' | 'data'
 
 const MEMORY_LABELS: Record<MemoryType, string> = {
   PERSON: '关于你',
@@ -37,11 +37,19 @@ const MEMORY_LABELS: Record<MemoryType, string> = {
   RELATIONSHIP: '关系变化',
 }
 
-const FREQUENCY_OPTIONS: Array<{ value: ProactiveFrequency; label: string; detail: string }> = [
-  { value: 'LOW', label: '偶尔', detail: '至少间隔 7 天' },
-  { value: 'NORMAL', label: '适中', detail: '至少间隔 3 天' },
-  { value: 'HIGH', label: '经常', detail: '至少间隔 1 天' },
-]
+const EVIDENCE_LABELS: Record<string, string> = {
+  CHAT_EXTRACTION: '聊天原话',
+  USER_STATEMENT: '你主动告诉他的',
+  USER_CORRECTION: '你的确认或纠正',
+  ADMIN_ACTION: '受审计的管理操作',
+}
+
+const OPEN_LOOP_LABELS: Record<string, string> = {
+  OPEN: '等待自然接续',
+  COMPLETED: '已完成',
+  CANCELLED: '已取消',
+  EXPIRED: '已失效',
+}
 
 const activeTab = ref<PanelTab>('memories')
 const memoryStatus = ref<MemoryStatus>('ACTIVE')
@@ -54,15 +62,6 @@ const memories = ref<RelationshipMemory[]>([])
 const editorOpen = ref(false)
 const editingId = ref<string | null>(null)
 const deleteConfirmation = ref('')
-const preferenceForm = reactive<RelationshipPreferences>({
-  proactiveEnabled: false,
-  proactiveFrequency: 'LOW',
-  quietStart: '22:00:00',
-  quietEnd: '08:00:00',
-  timezone: 'Asia/Shanghai',
-  lastProactiveAt: null,
-  updatedAt: null,
-})
 const memoryForm = reactive<{
   memoryType: MemoryType
   content: string
@@ -75,9 +74,7 @@ const memoryForm = reactive<{
 
 const title = computed(() => activeTab.value === 'memories'
   ? '他记得的你'
-  : activeTab.value === 'proactive'
-    ? '主动联系'
-    : '关系数据')
+  : '关系数据')
 
 async function load() {
   if (!props.open) return
@@ -90,10 +87,6 @@ async function load() {
     ])
     overview.value = nextOverview
     memories.value = nextMemories
-    Object.assign(preferenceForm, nextOverview.preferences, {
-      quietStart: nextOverview.preferences.quietStart.slice(0, 5),
-      quietEnd: nextOverview.preferences.quietEnd.slice(0, 5),
-    })
   } catch (caught) {
     error.value = caught instanceof Error ? caught.message : '关系数据加载失败'
   } finally {
@@ -186,26 +179,29 @@ async function restore(memory: RelationshipMemory) {
   }
 }
 
-async function savePreferences() {
-  saving.value = true
+async function resolveConflict(memory: RelationshipMemory, accept: boolean) {
   error.value = ''
   try {
-    const updated = await relationshipApi.updatePreferences({
-      proactiveEnabled: preferenceForm.proactiveEnabled,
-      proactiveFrequency: preferenceForm.proactiveFrequency,
-      quietStart: normalizeTime(preferenceForm.quietStart),
-      quietEnd: normalizeTime(preferenceForm.quietEnd),
-      timezone: preferenceForm.timezone,
-    })
-    Object.assign(preferenceForm, updated, {
-      quietStart: updated.quietStart.slice(0, 5),
-      quietEnd: updated.quietEnd.slice(0, 5),
-    })
-    success.value = '主动联系设置已保存'
+    if (accept) await relationshipApi.confirmMemory(memory.id)
+    else await relationshipApi.rejectMemory(memory.id)
+    success.value = accept ? '已采用新说法，旧版本仍可追溯' : '已保留原来的说法'
+    await load()
   } catch (caught) {
-    error.value = caught instanceof Error ? caught.message : '设置保存失败'
-  } finally {
-    saving.value = false
+    error.value = caught instanceof Error ? caught.message : '确认失败'
+  }
+}
+
+async function setOpenLoopStatus(
+  memory: RelationshipMemory,
+  status: 'OPEN' | 'COMPLETED' | 'CANCELLED' | 'EXPIRED',
+) {
+  error.value = ''
+  try {
+    await relationshipApi.updateOpenLoopStatus(memory.id, status)
+    success.value = status === 'OPEN' ? '已重新打开这个话题' : `已标记为${OPEN_LOOP_LABELS[status]}`
+    await loadMemories(memoryStatus.value)
+  } catch (caught) {
+    error.value = caught instanceof Error ? caught.message : '话题状态更新失败'
   }
 }
 
@@ -231,7 +227,7 @@ async function deleteRelationship() {
     error.value = '请输入完整确认文字'
     return
   }
-  if (!window.confirm('这会永久删除全部聊天、长期记忆和主动联系设置，且无法恢复。确认继续？')) return
+  if (!window.confirm('这会永久删除全部聊天和长期记忆，且无法恢复。确认继续？')) return
   saving.value = true
   error.value = ''
   try {
@@ -250,8 +246,8 @@ function formatDate(value: string | null) {
   return new Intl.DateTimeFormat('zh-CN', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(value))
 }
 
-function normalizeTime(value: string) {
-  return value.length === 5 ? `${value}:00` : value
+function evidenceLabel(value: string) {
+  return EVIDENCE_LABELS[value] ?? '来源记录'
 }
 
 function clearNoticeSoon() {
@@ -285,9 +281,6 @@ watch(() => props.open, (value) => {
             <button :class="{ 'is-active': activeTab === 'memories' }" @click="activeTab = 'memories'">
               <Brain :size="16" />记忆
             </button>
-            <button :class="{ 'is-active': activeTab === 'proactive' }" @click="activeTab = 'proactive'">
-              <Sparkles :size="16" />主动联系
-            </button>
             <button :class="{ 'is-active': activeTab === 'data' }" @click="activeTab = 'data'">
               <Download :size="16" />数据
             </button>
@@ -308,70 +301,99 @@ watch(() => props.open, (value) => {
                 <button type="button" @click="openCreate"><Plus :size="16" />告诉他一件事</button>
               </section>
 
+              <section class="memory-reliability" aria-label="记忆可靠性">
+                <span><Link2 :size="14" /><strong>{{ overview?.reliability.evidenceCount ?? 0 }}</strong> 条来源证据</span>
+                <span><GitBranch :size="14" /><strong>{{ overview?.reliability.usageCount ?? 0 }}</strong> 次回答引用</span>
+                <span :class="{ 'has-warning': (overview?.reliability.failedExtractionCount ?? 0) > 0 }">
+                  <CircleAlert :size="14" />
+                  <strong>{{ overview?.reliability.pendingExtractionCount ?? 0 }}</strong> 条待提取
+                  <template v-if="overview?.reliability.failedExtractionCount">· {{ overview.reliability.failedExtractionCount }} 条失败</template>
+                </span>
+              </section>
+
               <div class="memory-filter">
                 <button :class="{ 'is-active': memoryStatus === 'ACTIVE' }" @click="void loadMemories('ACTIVE')">记得的事</button>
+                <button :class="{ 'is-active': memoryStatus === 'NEEDS_CONFIRMATION' }" @click="void loadMemories('NEEDS_CONFIRMATION')">
+                  需要你确认<span v-if="overview?.needsConfirmationCount"> {{ overview.needsConfirmationCount }}</span>
+                </button>
                 <button :class="{ 'is-active': memoryStatus === 'FORGOTTEN' }" @click="void loadMemories('FORGOTTEN')">已经忘记</button>
               </div>
 
               <section class="memory-timeline">
-                <article v-for="memory in memories" :key="memory.id" class="memory-card">
+                <article
+                  v-for="memory in memories"
+                  :key="memory.id"
+                  class="memory-card"
+                  :class="{ 'is-conflict': memory.confirmationStatus === 'NEEDS_CONFIRMATION' }"
+                >
                   <span class="memory-dot" aria-hidden="true"></span>
                   <header>
                     <span>{{ MEMORY_LABELS[memory.memoryType] }}</span>
-                    <small>{{ memory.userCorrected ? '由你确认' : `可信度 ${Math.round(memory.confidence * 100)}%` }}</small>
+                    <small v-if="memory.confirmationStatus === 'NEEDS_CONFIRMATION'">需要你确认</small>
+                    <small v-else>{{ memory.userCorrected ? '由你确认' : `可信度 ${Math.round(memory.confidence * 100)}%` }}</small>
                   </header>
                   <p>{{ memory.content }}</p>
-                  <blockquote v-if="memory.sourceExcerpt">“{{ memory.sourceExcerpt }}”</blockquote>
+
+                  <section v-if="memory.confirmationStatus === 'NEEDS_CONFIRMATION'" class="memory-conflict">
+                    <span>他发现了一个和已有记忆不同的新说法</span>
+                    <div v-if="memory.supersedesContent">
+                      <small>原来的说法</small>
+                      <p>{{ memory.supersedesContent }}</p>
+                    </div>
+                    <div>
+                      <small>新说法</small>
+                      <p>{{ memory.content }}</p>
+                    </div>
+                    <footer>
+                      <button type="button" @click="void resolveConflict(memory, false)"><X :size="14" />保留原说法</button>
+                      <button class="is-primary" type="button" @click="void resolveConflict(memory, true)"><Check :size="14" />采用新说法</button>
+                    </footer>
+                  </section>
+
+                  <div v-if="memory.memoryType === 'OPEN_LOOP' && memory.openLoopStatus" class="open-loop-state">
+                    <span>{{ OPEN_LOOP_LABELS[memory.openLoopStatus] }}</span>
+                    <div v-if="memory.confirmationStatus !== 'NEEDS_CONFIRMATION'">
+                      <button v-if="memory.openLoopStatus !== 'OPEN'" type="button" @click="void setOpenLoopStatus(memory, 'OPEN')">重新打开</button>
+                      <template v-else>
+                        <button type="button" @click="void setOpenLoopStatus(memory, 'COMPLETED')">标记完成</button>
+                        <button type="button" @click="void setOpenLoopStatus(memory, 'CANCELLED')">取消话题</button>
+                      </template>
+                    </div>
+                  </div>
+
+                  <details v-if="memory.evidence.length" class="memory-evidence">
+                    <summary><Link2 :size="13" />{{ memory.evidence.length }} 条来源证据 · 已用于 {{ memory.usageCount }} 条回答</summary>
+                    <ol>
+                      <li v-for="evidence in memory.evidence" :key="evidence.id ?? `${evidence.evidenceType}-${evidence.createdAt}`">
+                        <span>{{ evidenceLabel(evidence.evidenceType) }} · {{ formatDate(evidence.sourceAt || evidence.createdAt) }}</span>
+                        <blockquote>“{{ evidence.excerpt }}”</blockquote>
+                      </li>
+                    </ol>
+                  </details>
+                  <blockquote v-else-if="memory.sourceExcerpt">“{{ memory.sourceExcerpt }}”</blockquote>
                   <footer>
                     <span><CalendarClock :size="13" />{{ formatDate(memory.sourceAt || memory.createdAt) }}</span>
-                    <div>
+                    <div v-if="memory.confirmationStatus !== 'NEEDS_CONFIRMATION'">
                       <button v-if="memory.status === 'ACTIVE'" type="button" @click="openEdit(memory)"><Pencil :size="14" />纠正</button>
                       <button v-if="memory.status === 'ACTIVE'" type="button" @click="forget(memory)"><Trash2 :size="14" />忘记</button>
-                      <button v-else type="button" @click="restore(memory)"><ArchiveRestore :size="14" />恢复</button>
+                      <button v-else-if="memory.status === 'FORGOTTEN'" type="button" @click="restore(memory)"><ArchiveRestore :size="14" />恢复</button>
                     </div>
                   </footer>
                 </article>
                 <p v-if="!memories.length" class="relationship-empty">
-                  {{ memoryStatus === 'ACTIVE' ? '还没有长期记忆。继续聊天后，值得记住的事会出现在这里。' : '没有已经遗忘的记忆。' }}
+                  {{ memoryStatus === 'ACTIVE'
+                    ? '还没有长期记忆。继续聊天后，值得记住的事会出现在这里。'
+                    : memoryStatus === 'NEEDS_CONFIRMATION'
+                      ? '目前没有相互冲突、需要你确认的记忆。'
+                      : '没有已经遗忘的记忆。' }}
                 </p>
-              </section>
-            </template>
-
-            <template v-else-if="activeTab === 'proactive'">
-              <section class="preference-card">
-                <div class="preference-lead">
-                  <div><strong>允许陶攀主动联系你</strong><span>只在有自然话题且不处于安静时段时发送。</span></div>
-                  <label class="relationship-switch">
-                    <input v-model="preferenceForm.proactiveEnabled" type="checkbox" />
-                    <span aria-hidden="true"></span>
-                  </label>
-                </div>
-
-                <fieldset :disabled="!preferenceForm.proactiveEnabled">
-                  <legend>联系频率</legend>
-                  <label v-for="option in FREQUENCY_OPTIONS" :key="option.value" class="frequency-option">
-                    <input v-model="preferenceForm.proactiveFrequency" type="radio" :value="option.value" />
-                    <span><strong>{{ option.label }}</strong><small>{{ option.detail }}</small></span>
-                  </label>
-                </fieldset>
-
-                <div class="quiet-grid" :class="{ 'is-disabled': !preferenceForm.proactiveEnabled }">
-                  <label>安静开始<input v-model="preferenceForm.quietStart" type="time" :disabled="!preferenceForm.proactiveEnabled" /></label>
-                  <label>安静结束<input v-model="preferenceForm.quietEnd" type="time" :disabled="!preferenceForm.proactiveEnabled" /></label>
-                  <label>时区<input v-model="preferenceForm.timezone" type="text" :disabled="!preferenceForm.proactiveEnabled" /></label>
-                </div>
-
-                <button class="relationship-primary" type="button" :disabled="saving" @click="savePreferences">
-                  <LoaderCircle v-if="saving" class="spin" :size="16" />
-                  <Save v-else :size="16" />保存设置
-                </button>
               </section>
             </template>
 
             <template v-else>
               <section class="data-card">
                 <Download :size="23" />
-                <div><strong>导出关系数据</strong><p>包含长期记忆、主动联系设置和全部聊天内容，文件格式为 JSON。</p></div>
+                <div><strong>导出关系数据</strong><p>包含长期记忆、来源证据、使用记录和全部聊天内容，文件格式为 JSON。</p></div>
                 <button type="button" @click="exportRelationship">导出</button>
               </section>
 
@@ -379,7 +401,7 @@ watch(() => props.open, (value) => {
                 <Trash2 :size="23" />
                 <div>
                   <strong>删除全部关系数据</strong>
-                  <p>永久删除聊天内容、长期记忆和主动联系设置。账户与活动奖品记录不会被删除。</p>
+                  <p>永久删除聊天内容、长期记忆、来源证据和使用记录。账户与活动奖品记录不会被删除。</p>
                   <label>输入“删除全部关系数据”确认<input v-model="deleteConfirmation" type="text" autocomplete="off" /></label>
                 </div>
                 <button type="button" :disabled="saving || deleteConfirmation.trim() !== '删除全部关系数据'" @click="deleteRelationship">永久删除</button>
@@ -462,7 +484,7 @@ watch(() => props.open, (value) => {
 .relationship-header h2 { margin-top: 2px; font-size: 24px; letter-spacing: -.02em; }
 .relationship-header > button, .memory-editor header button { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 14px; color: var(--rel-ink); background: rgb(232 220 199 / 72%); }
 
-.relationship-tabs { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; padding: 0 26px 16px; }
+.relationship-tabs { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; padding: 0 26px 16px; }
 .relationship-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; border: 1px solid rgb(96 108 56 / 16%); border-radius: 15px; color: var(--rel-muted); background: rgb(232 220 199 / 52%); font-weight: 680; }
 .relationship-tabs button.is-active { color: var(--rel-sand); background: var(--rel-moss); }
 
@@ -477,6 +499,10 @@ watch(() => props.open, (value) => {
 .memory-summary strong { font-size: 30px; line-height: 1; }
 .memory-summary span { margin-top: 5px; color: var(--rel-muted); font-size: 12px; }
 .memory-summary button, .relationship-primary { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 42px; padding: 0 15px; border-radius: 15px; color: var(--rel-sand); background: var(--rel-moss); font-weight: 700; }
+.memory-reliability { display: flex; flex-wrap: wrap; gap: 8px 15px; margin-top: 10px; padding: 11px 14px; border-radius: 15px; color: var(--rel-muted); background: rgb(232 220 199 / 45%); font-size: 11px; }
+.memory-reliability span { display: inline-flex; align-items: center; gap: 5px; }
+.memory-reliability strong { color: var(--rel-ink); font-size: 12px; }
+.memory-reliability .has-warning { color: #8a3e28; }
 
 .memory-filter { display: flex; gap: 8px; margin: 18px 0; }
 .memory-filter button { min-height: 34px; padding: 0 12px; border-radius: 999px; color: var(--rel-muted); background: rgb(232 220 199 / 55%); font-size: 12px; }
@@ -484,39 +510,41 @@ watch(() => props.open, (value) => {
 .memory-timeline { position: relative; display: grid; gap: 14px; padding-left: 20px; }
 .memory-timeline::before { position: absolute; top: 4px; bottom: 4px; left: 5px; width: 2px; content: ""; background: rgb(96 108 56 / 24%); }
 .memory-card { position: relative; padding: 17px; border-radius: 20px; background: rgb(232 220 199 / 72%); box-shadow: 0 12px 26px rgb(48 55 46 / 7%); }
+.memory-card.is-conflict { border: 1px solid rgb(198 107 61 / 32%); background: rgb(241 220 197 / 84%); }
+.memory-card.is-conflict .memory-dot { background: #a84f31; }
 .memory-dot { position: absolute; top: 22px; left: -20px; width: 12px; height: 12px; border: 3px solid var(--rel-sand); border-radius: 50%; background: var(--rel-terracotta); }
-.memory-card header, .memory-card footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
-.memory-card header span { color: var(--rel-moss); font-size: 12px; font-weight: 760; }
-.memory-card header small { color: var(--rel-muted); }
+.memory-card > header, .memory-card > footer { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.memory-card > header span { color: var(--rel-moss); font-size: 12px; font-weight: 760; }
+.memory-card > header small { color: var(--rel-muted); }
 .memory-card p { margin: 12px 0 0; font-size: 15px; line-height: 1.65; user-select: text; }
 .memory-card blockquote { margin: 12px 0 0; padding-left: 11px; border-left: 3px solid var(--rel-clay); color: var(--rel-muted); font-size: 12px; line-height: 1.6; user-select: text; }
-.memory-card footer { align-items: flex-end; margin-top: 14px; }
-.memory-card footer > span { display: inline-flex; align-items: center; gap: 5px; color: var(--rel-muted); font-size: 11px; }
-.memory-card footer div { display: flex; gap: 5px; }
-.memory-card footer button { display: inline-flex; align-items: center; gap: 4px; min-height: 29px; padding: 0 8px; border-radius: 10px; color: var(--rel-muted); background: rgb(212 184 149 / 35%); font-size: 11px; }
+.memory-card > footer { align-items: flex-end; margin-top: 14px; }
+.memory-card > footer > span { display: inline-flex; align-items: center; gap: 5px; color: var(--rel-muted); font-size: 11px; }
+.memory-card > footer > div { display: flex; gap: 5px; }
+.memory-card > footer button { display: inline-flex; align-items: center; gap: 4px; min-height: 29px; padding: 0 8px; border-radius: 10px; color: var(--rel-muted); background: rgb(212 184 149 / 35%); font-size: 11px; }
+.memory-conflict { display: grid; gap: 8px; margin-top: 14px; padding: 13px; border-radius: 16px; background: rgb(198 107 61 / 10%); }
+.memory-conflict > span { color: #7a3b28; font-size: 12px; font-weight: 700; }
+.memory-conflict > div { padding: 10px 11px; border-radius: 12px; background: rgb(232 220 199 / 62%); }
+.memory-conflict small { color: var(--rel-muted); font-size: 10px; }
+.memory-conflict p { margin-top: 3px; font-size: 13px; }
+.memory-conflict footer { display: flex; justify-content: flex-end; gap: 7px; margin-top: 3px; }
+.memory-conflict button, .open-loop-state button { display: inline-flex; align-items: center; gap: 4px; min-height: 30px; padding: 0 9px; border-radius: 10px; color: var(--rel-muted); background: rgb(232 220 199 / 70%); font-size: 11px; }
+.memory-conflict button.is-primary { color: var(--rel-sand); background: var(--rel-moss); }
+.open-loop-state { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 12px; padding: 9px 11px; border: 1px dashed rgb(96 108 56 / 30%); border-radius: 13px; }
+.open-loop-state > span { color: var(--rel-moss); font-size: 11px; font-weight: 700; }
+.open-loop-state > div { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 5px; }
+.memory-evidence { margin-top: 12px; border-top: 1px solid rgb(96 108 56 / 12%); padding-top: 10px; }
+.memory-evidence summary { display: inline-flex; align-items: center; gap: 5px; color: var(--rel-muted); cursor: pointer; font-size: 11px; list-style: none; }
+.memory-evidence summary::-webkit-details-marker { display: none; }
+.memory-evidence ol { display: grid; gap: 9px; margin: 10px 0 0; padding: 0; list-style: none; }
+.memory-evidence li { padding: 9px 10px; border-radius: 12px; background: rgb(212 184 149 / 18%); }
+.memory-evidence li > span { color: var(--rel-muted); font-size: 10px; }
+.memory-evidence li blockquote { margin-top: 5px; }
 .relationship-empty { margin: 22px 0; color: var(--rel-muted); line-height: 1.7; text-align: center; }
 
-.preference-card, .data-card, .danger-card { padding: 20px; border-radius: 22px; background: rgb(232 220 199 / 68%); }
-.preference-lead { display: flex; align-items: center; justify-content: space-between; gap: 18px; }
-.preference-lead div { display: grid; gap: 5px; }
-.preference-lead span { color: var(--rel-muted); font-size: 12px; line-height: 1.55; }
-.relationship-switch input { position: absolute; opacity: 0; }
-.relationship-switch span { position: relative; display: block; width: 48px; height: 29px; border-radius: 999px; background: var(--rel-clay); transition: background .3s ease; }
-.relationship-switch span::after { position: absolute; top: 4px; left: 4px; width: 21px; height: 21px; border-radius: 50%; content: ""; background: var(--rel-sand); transition: transform .3s ease; }
-.relationship-switch input:checked + span { background: var(--rel-moss); }
-.relationship-switch input:checked + span::after { transform: translateX(19px); }
-.preference-card fieldset { display: grid; grid-template-columns: repeat(3, 1fr); gap: 9px; margin: 22px 0 0; padding: 0; border: 0; }
-.preference-card legend { grid-column: 1 / -1; margin-bottom: 8px; color: var(--rel-muted); font-size: 12px; }
-.frequency-option input { position: absolute; opacity: 0; }
-.frequency-option > span { display: grid; gap: 3px; min-height: 64px; padding: 12px; border: 1px solid rgb(96 108 56 / 16%); border-radius: 15px; background: rgb(232 220 199 / 48%); }
-.frequency-option small { color: var(--rel-muted); }
-.frequency-option input:checked + span { border-color: var(--rel-moss); background: rgb(139 157 131 / 28%); }
-.quiet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 11px; margin-top: 17px; }
-.quiet-grid label:last-child { grid-column: 1 / -1; }
-.quiet-grid label, .memory-editor label, .danger-card label { display: grid; gap: 6px; color: var(--rel-muted); font-size: 12px; }
-.quiet-grid input, .memory-editor input, .memory-editor select, .memory-editor textarea, .danger-card input { width: 100%; border: 1px solid rgb(96 108 56 / 18%); border-radius: 13px; padding: 10px 11px; color: var(--rel-ink); outline: none; background: rgb(232 220 199 / 66%); font: inherit; user-select: text; }
-.quiet-grid.is-disabled { opacity: .45; }
-.preference-card .relationship-primary { margin-top: 18px; }
+.data-card, .danger-card { padding: 20px; border-radius: 22px; background: rgb(232 220 199 / 68%); }
+.memory-editor label, .danger-card label { display: grid; gap: 6px; color: var(--rel-muted); font-size: 12px; }
+.memory-editor input, .memory-editor select, .memory-editor textarea, .danger-card input { width: 100%; border: 1px solid rgb(96 108 56 / 18%); border-radius: 13px; padding: 10px 11px; color: var(--rel-ink); outline: none; background: rgb(232 220 199 / 66%); font: inherit; user-select: text; }
 
 .data-card, .danger-card { display: grid; grid-template-columns: auto 1fr auto; align-items: start; gap: 14px; }
 .data-card div, .danger-card div { display: grid; gap: 7px; }
@@ -542,11 +570,9 @@ watch(() => props.open, (value) => {
   .relationship-tabs { padding: 0 16px 12px; }
   .relationship-content { padding: 0 16px calc(24px + env(safe-area-inset-bottom)); }
   .relationship-notice { margin-inline: 16px; }
-  .preference-card fieldset { grid-template-columns: 1fr; }
-  .quiet-grid { grid-template-columns: 1fr; }
-  .quiet-grid label:last-child { grid-column: auto; }
   .data-card, .danger-card { grid-template-columns: auto 1fr; }
   .data-card > button, .danger-card > button { grid-column: 1 / -1; }
-  .memory-card footer { align-items: flex-start; flex-direction: column; }
+  .memory-card > footer { align-items: flex-start; flex-direction: column; }
+  .memory-conflict footer { align-items: stretch; flex-direction: column; }
 }
 </style>

@@ -3,8 +3,13 @@ export interface UserInfo {
   email: string
   displayName: string
   realName: string | null
+  realNameVerificationStatus: RealNameVerificationStatus
+  realNameVerifiedAt: string | null
+  realNameReviewReason: string | null
   createdAt: string
 }
+
+export type RealNameVerificationStatus = 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'
 
 interface ApiResult<T> {
   code: number
@@ -55,6 +60,13 @@ export async function getCurrentUser(): Promise<UserInfo | null> {
     return null
   }
   return parseResponse<UserInfo>(response)
+}
+
+export async function submitRealName(realName: string): Promise<UserInfo> {
+  return authRequest<UserInfo>('/api/account/real-name', {
+    method: 'PUT',
+    body: JSON.stringify({ realName }),
+  })
 }
 
 async function authRequest<T>(url: string, init: RequestInit): Promise<T> {

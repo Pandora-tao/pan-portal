@@ -11,6 +11,7 @@
     "dev:chat": "pnpm --filter @dragon-boat/pan-chat dev",
     "dev:admin": "pnpm --filter @dragon-boat/admin dev",
     "dev:profile": "pnpm --filter @dragon-boat/profile dev",
+    "dev:people": "pnpm --filter @dragon-boat/people dev",
     "dev:all": "pnpm -r --parallel dev",
     "type-check": "pnpm -r type-check",
     "build": "pnpm -r build",
@@ -18,7 +19,8 @@
     "preview:lucky-draw": "pnpm --filter @dragon-boat/lucky-draw preview",
     "preview:chat": "pnpm --filter @dragon-boat/pan-chat preview",
     "preview:admin": "pnpm --filter @dragon-boat/admin preview",
-    "preview:profile": "pnpm --filter @dragon-boat/profile preview"
+    "preview:profile": "pnpm --filter @dragon-boat/profile preview",
+    "preview:people": "pnpm --filter @dragon-boat/people preview"
   },
   "dependencies": {
     "@fontsource/fraunces": "^5.2.9",

@@ -19,6 +19,11 @@ export interface UserSummary {
   email: string
   displayName: string
   realName: string | null
+  realNameVerificationStatus: RealNameVerificationStatus
+  realNameVerifiedAt: string | null
+  realNameReviewedAt: string | null
+  realNameReviewedBy: string | null
+  realNameReviewReason: string | null
   status: 'ACTIVE' | 'DISABLED'
   role: 'USER' | 'SUPER_ADMIN'
   createdAt: string
@@ -28,6 +33,8 @@ export interface UserSummary {
   chatSessionCount: number
   chatMessageCount: number
 }
+
+export type RealNameVerificationStatus = 'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED'
 
 export interface AuthSessionView {
   id: string
@@ -56,6 +63,52 @@ export interface UserDetail {
   user: UserSummary
   authSessions: AuthSessionView[]
   auditLogs: AuditView[]
+}
+
+export interface ProfileAchievement {
+  title: string
+  date: string | null
+  description: string | null
+}
+
+export interface AdminProfileData {
+  userId: string
+  name: string
+  avatarDataUrl: string | null
+  birthDate: string | null
+  bio: string | null
+  interests: string[]
+  achievements: ProfileAchievement[]
+  published: boolean
+  exists: boolean
+  updatedAt: string | null
+}
+
+export type RelationshipMemoryStatus = 'ACTIVE' | 'FORGOTTEN'
+
+export interface RelationshipMemory {
+  id: string
+  memoryType: 'PERSON' | 'PREFERENCE' | 'SHARED_EVENT' | 'OPEN_LOOP' | 'RELATIONSHIP'
+  content: string
+  sourceMessageId: string | null
+  sourceExcerpt: string | null
+  sourceAt: string | null
+  occurredAt: string | null
+  confidence: number
+  status: RelationshipMemoryStatus
+  userCorrected: boolean
+  lastRecalledAt: string | null
+  recallCount: number
+  forgottenAt: string | null
+  createdAt: string
+  updatedAt: string
+}
+
+export interface AdminRelationshipData {
+  accessedAt: string
+  memories: RelationshipMemory[]
+  activeMemoryCount: number
+  forgottenMemoryCount: number
 }
 
 export interface ConversationSummary {

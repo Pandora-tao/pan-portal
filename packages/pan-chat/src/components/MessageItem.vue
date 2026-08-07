@@ -2,7 +2,11 @@
 import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { gsap } from 'gsap'
 import {
+  Download,
+  FileText,
   MessageSquareWarning,
+  Pause,
+  Play,
   RefreshCw,
   Send,
   ThumbsDown,
@@ -30,11 +34,14 @@ const emit = defineEmits<{
 
 const PROBLEM_OPTIONS = ['内容不准确', '没有帮助', '不符合语境', '表达不友好', '其他问题']
 const rowRef = ref<HTMLElement | null>(null)
+const audioRef = ref<HTMLAudioElement | null>(null)
 const contextMenuOpen = ref(false)
 const feedbackOpen = ref(false)
 const selectedRating = ref<FeedbackRating | undefined>(props.message.feedback?.rating)
 const selectedProblems = ref<string[]>(props.message.feedback?.categories ?? [])
 const feedbackComment = ref(props.message.feedback?.comment ?? '')
+const voicePlaying = ref(false)
+const voiceCurrentTime = ref(0)
 const stickerUrl = computed(() => {
   const stickers: Record<string, string> = {
     lulu: luluSticker,
@@ -50,6 +57,63 @@ const canOpenMessageMenu = computed(() => (
   && props.message.status !== 'streaming'
   && Boolean(props.message.content)
 ))
+const isImageAttachment = computed(() => Boolean(
+  props.message.attachment?.mime.startsWith('image/'),
+))
+const voiceDurationLabel = computed(() => formatVoiceDuration(props.message.attachment?.durationMs))
+const voiceCurrentLabel = computed(() => formatVoiceDuration(Math.round(voiceCurrentTime.value * 1000)))
+const toolExecutionLabel = computed(() => {
+  const executions = props.message.metadata?.toolExecutions
+  if (!executions?.length) return ''
+  const names = [...new Set(executions.map((execution) => execution.name))]
+  return `调用了 ${executions.length} 个工具：${names.join('、')}`
+})
+
+function toggleVoice() {
+  const audio = audioRef.value
+  if (!audio) return
+  if (voicePlaying.value) {
+    audio.pause()
+    return
+  }
+  void audio.play().catch(() => {
+    voicePlaying.value = false
+  })
+}
+
+function handleVoiceTimeUpdate() {
+  const audio = audioRef.value
+  if (!audio) return
+  voiceCurrentTime.value = audio.currentTime
+}
+
+function handleVoiceEnded() {
+  voicePlaying.value = false
+  voiceCurrentTime.value = 0
+  const audio = audioRef.value
+  if (audio) audio.currentTime = 0
+}
+
+function openImageAttachment() {
+  if (props.message.attachment?.url) {
+    window.open(props.message.attachment.url, '_blank', 'noopener,noreferrer')
+  }
+}
+
+function formatFileSize(bytes: number | undefined): string {
+  if (!bytes || bytes <= 0) return ''
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`
+}
+
+function formatVoiceDuration(durationMs: number | null | undefined): string {
+  if (!durationMs || durationMs <= 0) return '0:00'
+  const totalSeconds = Math.round(durationMs / 1000)
+  const minutes = Math.floor(totalSeconds / 60)
+  const seconds = totalSeconds % 60
+  return `${minutes}:${String(seconds).padStart(2, '0')}`
+}
 let thinkingContext: ReturnType<typeof gsap.context> | null = null
 let longPressTimer: number | null = null
 let longPressStart = { x: 0, y: 0 }
@@ -178,6 +242,7 @@ watch(() => props.message.feedback, (feedback) => {
 onUnmounted(() => {
   stopThinkingAnimation()
   cancelLongPress()
+  audioRef.value?.pause()
   document.removeEventListener('pointerdown', handleDocumentPointerDown)
   document.removeEventListener('keydown', handleDocumentKeydown)
 })
@@ -194,6 +259,9 @@ onUnmounted(() => {
     }]"
   >
     <div class="message-stack">
+      <span v-if="!grouped" class="message-author">
+        {{ message.role === 'assistant' ? '陶攀' : '你' }}
+      </span>
       <div
         class="message-card"
         :class="{ 'has-message-menu': canOpenMessageMenu }"
@@ -224,9 +292,90 @@ onUnmounted(() => {
           :src="stickerUrl"
           alt="陶攀发来的贴纸"
         />
+        <div
+          v-else-if="message.contentType === 'FILE' && message.attachment"
+          class="attachment-card"
+        >
+          <a
+            v-if="isImageAttachment"
+            class="attachment-image-link"
+            :href="message.attachment.url"
+            target="_blank"
+            rel="noreferrer"
+            aria-label="查看图片附件"
+            @click.prevent="openImageAttachment"
+          >
+            <img
+              class="attachment-image"
+              :src="message.attachment.url"
+              :alt="message.attachment.name"
+              loading="lazy"
+            />
+          </a>
+          <div v-else class="attachment-file">
+            <span class="attachment-file-icon" aria-hidden="true">
+              <FileText :size="18" />
+            </span>
+            <span class="attachment-file-meta">
+              <span class="attachment-file-name">{{ message.attachment.name }}</span>
+              <span class="attachment-file-size">{{ formatFileSize(message.attachment.size) }}</span>
+            </span>
+            <a
+              class="attachment-download"
+              :href="message.attachment.url"
+              download
+              aria-label="下载文件"
+              title="下载文件"
+            >
+              <Download :size="15" />
+            </a>
+          </div>
+        </div>
+        <div
+          v-else-if="message.contentType === 'VOICE' && message.attachment"
+          class="voice-bubble"
+        >
+          <button
+            type="button"
+            class="voice-play"
+            :aria-label="voicePlaying ? '暂停语音' : '播放语音'"
+            :title="voicePlaying ? '暂停' : '播放'"
+            @click="toggleVoice"
+          >
+            <Pause v-if="voicePlaying" :size="16" aria-hidden="true" />
+            <Play v-else :size="16" aria-hidden="true" />
+          </button>
+          <div class="voice-track" aria-hidden="true">
+            <span
+              v-for="index in 24"
+              :key="index"
+              class="voice-bar"
+              :class="{ 'is-playing': voicePlaying }"
+            ></span>
+          </div>
+          <span class="voice-time" role="timer" :aria-label="voicePlaying ? '语音播放进度' : '语音时长'">
+            {{ voicePlaying ? voiceCurrentLabel : voiceDurationLabel }}
+          </span>
+          <audio
+            ref="audioRef"
+            :src="message.attachment.url"
+            preload="metadata"
+            @timeupdate="handleVoiceTimeUpdate"
+            @ended="handleVoiceEnded"
+            @play="voicePlaying = true"
+            @pause="voicePlaying = false"
+          ></audio>
+        </div>
         <p v-else class="message-text" :class="{ 'is-streaming': message.status === 'streaming' }">
           {{ message.content }}
         </p>
+        <span
+          v-if="toolExecutionLabel && message.role === 'assistant' && message.status === 'completed'"
+          class="message-tool-executions"
+          role="note"
+        >
+          ⚙ {{ toolExecutionLabel }}
+        </span>
 
         <Transition name="message-menu">
           <div

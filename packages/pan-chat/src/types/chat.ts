@@ -9,8 +9,28 @@ export type ChatRole = 'user' | 'assistant'
  * streaming / stopped 用于 SSE 生成中和用户主动停止后的状态。
  */
 export type MessageStatus = 'pending' | 'streaming' | 'completed' | 'failed' | 'stopped'
-export type MessageContentType = 'TEXT' | 'STICKER'
+export type MessageContentType = 'TEXT' | 'STICKER' | 'FILE' | 'VOICE'
 export type MessageOrigin = 'REACTIVE' | 'PROACTIVE'
+
+export type ChatAttachmentKind = 'FILE' | 'VOICE'
+
+export interface ChatAttachment {
+  kind: ChatAttachmentKind
+  name: string
+  size: number
+  mime: string
+  durationMs?: number | null
+  url: string
+}
+
+export interface ChatAttachmentInput {
+  attachmentId: string
+  kind: ChatAttachmentKind
+  name: string
+  size: number
+  mime: string
+  durationMs?: number | null
+}
 
 export interface ChatMessage {
   id: string
@@ -22,6 +42,13 @@ export interface ChatMessage {
   createdAt: string
   contentType?: MessageContentType
   stickerKey?: 'lulu' | 'pudding-dog' | 'crab'
+  attachment?: ChatAttachment
+  attachmentKind?: ChatAttachmentKind
+  attachmentName?: string
+  attachmentSize?: number
+  attachmentMime?: string
+  attachmentDurationMs?: number | null
+  attachmentUrl?: string
   origin?: MessageOrigin
   errorMessage?: string
   feedback?: ChatMessageFeedback
@@ -85,6 +112,12 @@ export interface ChatMessageMetadata {
   model?: string
   tokens?: number
   durationMs?: number
+  steps?: number
+  toolExecutions?: Array<{
+    id: string
+    name: string
+    status: string
+  }>
 }
 
 export type FeedbackRating = 'like' | 'dislike'

@@ -2,9 +2,11 @@ export interface Account {
   id: string
   email: string
   status: string
+  emailVerified: boolean
   verified: boolean
   pageId: string | null
   unreadNotifications: number
+  deletionScheduledFor: string | null
 }
 
 export interface Verification {
@@ -61,6 +63,7 @@ export interface SearchResult { items: Profile[]; nextCursor: string | null }
 export interface Conversation {
   conversationId: string
   otherPageId: string
+  otherAccountId: string
   otherLegalName: string
   otherAvatarUrl: string | null
   lastMessagePreview: string | null
@@ -78,3 +81,47 @@ export interface DirectMessage {
 }
 
 export interface MessagePage { items: DirectMessage[]; nextCursor: string | null }
+
+export interface AccountLink { path: string | null; expiresAt: string | null; testOnly: boolean }
+
+export interface NotificationItem {
+  notificationId: number
+  eventType: string
+  subjectId: string | null
+  summary: string
+  readAt: string | null
+  createdAt: string
+}
+
+export interface NotificationPage { items: NotificationItem[]; nextCursor: number | null }
+
+export interface AccountSession {
+  sessionId: string
+  userAgent: string | null
+  ipAddress: string | null
+  createdAt: string
+  lastSeenAt: string
+  expiresAt: string
+  current: boolean
+}
+
+export interface RelationshipInbox {
+  requestId: string
+  requesterPageId: string
+  requesterLegalName: string
+  requesterAvatarUrl: string | null
+  relationshipType: string
+  createdAt: string
+}
+
+export interface PrivateRelationship {
+  relationshipId: string
+  pageId: string
+  accountId: string
+  legalName: string
+  avatarUrl: string | null
+  relationshipType: string
+  visibleByMe: boolean
+  visibleByOther: boolean
+  publicOnBothSides: boolean
+}

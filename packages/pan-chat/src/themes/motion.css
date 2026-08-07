@@ -1,0 +1,105 @@
+/* Shared minimal-motion layer — token-driven, respects reduced motion */
+.ambient {
+  position: absolute;
+  z-index: 0;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.ambient i {
+  position: absolute;
+  display: block;
+  width: 54vw;
+  height: 54vw;
+  min-width: 420px;
+  min-height: 420px;
+  border-radius: 50%;
+  opacity: var(--pp-ambient-opacity, 0.3);
+  background: var(--pp-ambient-1, rgb(94 106 210 / 22%));
+  filter: blur(92px);
+  transform: translate3d(0, 0, 0);
+  will-change: transform;
+  animation: ambient-drift-a 26s ease-in-out infinite alternate;
+}
+
+.ambient i:nth-child(2) {
+  right: -12vw;
+  bottom: -14vw;
+  width: 46vw;
+  height: 46vw;
+  min-width: 360px;
+  min-height: 360px;
+  background: var(--pp-ambient-2, rgb(240 149 93 / 20%));
+  animation-name: ambient-drift-b;
+  animation-duration: 32s;
+}
+
+@keyframes ambient-drift-a {
+  0% {
+    transform: translate3d(-6%, -4%, 0) scale(1);
+  }
+  100% {
+    transform: translate3d(10%, 8%, 0) scale(1.12);
+  }
+}
+
+@keyframes ambient-drift-b {
+  0% {
+    transform: translate3d(4%, 6%, 0) scale(1.05);
+  }
+  100% {
+    transform: translate3d(-9%, -7%, 0) scale(0.94);
+  }
+}
+
+.chat-status i {
+  animation: status-breathe 2.8s ease-in-out infinite;
+}
+
+@keyframes status-breathe {
+  0%,
+  100% {
+    transform: scale(1);
+    opacity: 0.72;
+  }
+  50% {
+    transform: scale(1.28);
+    opacity: 1;
+  }
+}
+
+@media (hover: hover) and (pointer: fine) {
+  .message-row.is-assistant .message-card {
+    transition:
+      transform 0.26s ease,
+      box-shadow 0.26s ease,
+      border-color 0.26s ease;
+  }
+
+  .message-row.is-assistant .message-card:hover {
+    transform: translateY(-2px);
+  }
+
+  .back-to-bottom {
+    animation: float-bob 2.6s ease-in-out infinite;
+  }
+}
+
+@keyframes float-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ambient i,
+  .chat-status i,
+  .back-to-bottom {
+    animation: none;
+  }
+}

@@ -17,6 +17,7 @@ import { isUnauthorizedError } from '../api/request'
 import { SseEventError } from '../api/sse'
 import type {
   ChatMessage,
+  ChatAttachmentInput,
   ChatGenerationSnapshot,
   ChatStreamDeltaEvent,
   ChatStreamErrorEvent,
@@ -113,23 +114,29 @@ export function useChat() {
     }
   }
 
-  async function sendMessage(rawContent: string) {
+  async function sendMessage(rawContent: string, attachment: ChatAttachmentInput | null = null) {
+    if (attachment && mode.value !== 'account') {
+      error.value = '登录后才能发送文件和语音。'
+      return
+    }
     const content = normalizeMessageContent(rawContent)
-    if (isEmptyMessage(content) || sending.value || loading.value) return
+    if ((isEmptyMessage(content) && !attachment) || sending.value || loading.value) return
 
-    if (isMessageTooLong(content)) {
+    if (content && isMessageTooLong(content)) {
       error.value = '消息太长了，请缩短后再发送。'
       return
     }
 
     error.value = null
     const clientMessageId = createUuid()
-    const userMessage = createTemporaryMessage('user', content, 'completed', clientMessageId)
+    const userMessage = createTemporaryMessage('user', content, 'completed', clientMessageId, attachment)
     const assistantMessage = createTemporaryMessage('assistant', '', 'pending')
     messages.value = [...messages.value, userMessage, assistantMessage]
     await runGeneration(assistantMessage.id, async (signal) => {
       if (mode.value === 'account') {
-        await streamAccountMessage(content, clientMessageId, userMessage.id, assistantMessage.id, signal)
+        await streamAccountMessage(
+          content, clientMessageId, userMessage.id, assistantMessage.id, signal, attachment,
+        )
       } else {
         await streamGuestMessage(assistantMessage.id, buildGuestHistory(), signal)
       }
@@ -172,8 +179,10 @@ export function useChat() {
     try {
       const snapshot = stored?.generationId
         ? await getGeneration(stored.generationId)
-        : stored
-          ? await createPersistentGeneration(sessionId, stored.clientMessageId, stored.content)
+          : stored
+          ? await createPersistentGeneration(
+              sessionId, stored.clientMessageId, stored.content, stored.attachmentId,
+            )
           : await getGeneration(pendingMessage!.generationId!)
       if (stored) savePendingGeneration({ ...stored, generationId: snapshot.generationId })
       mergeGenerationSnapshot(snapshot, null, null)
@@ -332,6 +341,7 @@ export function useChat() {
     temporaryUserId: string,
     temporaryAssistantId: string,
     signal: AbortSignal,
+    attachment: ChatAttachmentInput | null = null,
   ) {
     if (!currentSessionId.value) currentSessionId.value = (await createSession()).id
     const pending: PendingGeneration = {
@@ -340,6 +350,7 @@ export function useChat() {
       content,
       createdAt: new Date().toISOString(),
       generationId: null,
+      attachmentId: attachment?.attachmentId ?? null,
     }
     savePendingGeneration(pending)
     let snapshot: ChatGenerationSnapshot | null = null
@@ -347,7 +358,7 @@ export function useChat() {
     for (let attempt = 0; attempt < 3 && !signal.aborted; attempt += 1) {
       try {
         snapshot = await createPersistentGeneration(
-          currentSessionId.value, clientMessageId, content, signal,
+          currentSessionId.value, clientMessageId, content, attachment?.attachmentId, signal,
         )
         break
       } catch (caught) {
@@ -537,9 +548,19 @@ export function useChat() {
     content: string,
     status: ChatMessage['status'],
     clientMessageId?: string,
+    attachment?: ChatAttachmentInput | null,
   ): ChatMessage {
     return {
       id: createId('msg'), role, content, status, createdAt: new Date().toISOString(), clientMessageId,
+      contentType: attachment ? attachment.kind : undefined,
+      attachment: attachment ? {
+        kind: attachment.kind,
+        name: attachment.name,
+        size: attachment.size,
+        mime: attachment.mime,
+        durationMs: attachment.durationMs,
+        url: '',
+      } : undefined,
     }
   }
 
@@ -569,6 +590,15 @@ export function useChat() {
       origin: message.origin,
       errorMessage: message.errorMessage,
       feedback: message.feedback,
+      metadata: message.metadata,
+      attachment: message.attachmentUrl ? {
+        kind: message.attachmentKind as ChatAttachmentInput['kind'],
+        name: message.attachmentName ?? '附件',
+        size: message.attachmentSize ?? 0,
+        mime: message.attachmentMime ?? 'application/octet-stream',
+        durationMs: message.attachmentDurationMs,
+        url: message.attachmentUrl,
+      } : undefined,
     }
   }
 
@@ -603,6 +633,7 @@ interface PendingGeneration {
   content: string
   createdAt: string
   generationId: string | null
+  attachmentId: string | null
 }
 
 class PendingConfirmationError extends Error {

@@ -7,6 +7,7 @@ import ChatInput from './components/ChatInput.vue'
 import MessageList from './components/MessageList.vue'
 import RelationshipPanel from './components/RelationshipPanel.vue'
 import { useChat } from './composables/useChat'
+import type { ChatAttachmentInput } from './types/chat'
 
 const pageRef = ref<HTMLElement | null>(null)
 const relationshipOpen = ref(false)
@@ -36,10 +37,14 @@ const {
   stopGenerating,
 } = useChat()
 
-let ctx: ReturnType<typeof gsap.context> | null = null
+let motionMatch: ReturnType<typeof gsap.matchMedia> | null = null
 
 function handleSend(content: string) {
   void sendMessage(content)
+}
+
+function handleSendAttachment(attachment: ChatAttachmentInput) {
+  void sendMessage('', attachment)
 }
 
 function handleRelationshipDeleted() {
@@ -73,36 +78,83 @@ onMounted(() => {
   bindKeyboardViewport()
 
   if (!pageRef.value) return
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
 
-  ctx = gsap.context(() => {
-    gsap.from('.chat-shell', {
-      autoAlpha: 0,
-      y: 24,
-      scale: 0.985,
-      duration: 0.72,
-      ease: 'power3.out',
-      clearProps: 'transform,opacity,visibility',
-    })
-  }, pageRef.value)
+  motionMatch = gsap.matchMedia()
+  motionMatch.add('(prefers-reduced-motion: no-preference)', () => {
+    const ctx = gsap.context(() => {
+      gsap.fromTo(
+        '.chat-shell',
+        { autoAlpha: 0, y: 22 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.72,
+          ease: 'power3.out',
+          clearProps: 'transform,opacity,visibility',
+        },
+      )
+      gsap.fromTo(
+        ['.chat-header', '.chat-main'],
+        { autoAlpha: 0, y: 14 },
+        {
+          autoAlpha: 1,
+          y: 0,
+          duration: 0.56,
+          stagger: 0.1,
+          delay: 0.12,
+          ease: 'power3.out',
+          clearProps: 'transform,opacity,visibility',
+        },
+      )
+      gsap.fromTo(
+        ['.page-folio__label', '.page-folio__number'],
+        { autoAlpha: 0, x: 18 },
+        {
+          autoAlpha: 1,
+          x: 0,
+          duration: 0.64,
+          stagger: 0.08,
+          delay: 0.26,
+          ease: 'power3.out',
+          clearProps: 'transform,opacity,visibility',
+        },
+      )
+    }, pageRef.value!)
+
+    return () => ctx.revert()
+  })
 })
 
 onUnmounted(() => {
-  ctx?.revert()
+  motionMatch?.revert()
   unbindKeyboardViewport()
 })
 </script>
 
 <template>
   <main ref="pageRef" class="chat-page">
+    <div class="ambient" aria-hidden="true">
+      <i></i>
+      <i></i>
+    </div>
+    <div class="page-folio" aria-hidden="true">
+      <span class="page-folio__label">PAN CHAT</span>
+      <span class="page-folio__number">01</span>
+    </div>
     <section class="chat-shell" aria-label="和陶攀聊天">
       <header class="chat-header">
-        <div class="app-mark" aria-hidden="true">
-          <img :src="avatarUrl" alt="" />
-        </div>
-        <div class="chat-title">
-          <p>陶攀</p>
-          <span>{{ sending ? '正在输入…' : continuityLabel }}</span>
+        <div class="chat-identity">
+          <div class="app-mark" aria-hidden="true">
+            <img :src="avatarUrl" alt="" />
+          </div>
+          <div class="chat-title">
+            <span class="chat-kicker">PAN CHAT / 私人频道</span>
+            <p>陶攀</p>
+            <span class="chat-status">
+              <i aria-hidden="true"></i>
+              {{ sending ? '正在输入…' : continuityLabel }}
+            </span>
+          </div>
         </div>
         <div class="header-actions">
           <button
@@ -168,7 +220,9 @@ onUnmounted(() => {
           <ChatInput
             :sending="sending"
             :disabled="loading"
+            :attachments-enabled="!isGuest"
             @send="handleSend"
+            @send-attachment="handleSendAttachment"
           />
         </section>
       </div>

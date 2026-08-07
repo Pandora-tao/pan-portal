@@ -7,6 +7,7 @@ import type {
   PersistedChatMessage,
   UserInfo,
   MessageFeedbackInput,
+  ChatAttachmentInput,
 } from '../types/chat'
 
 export async function getCurrentUser(): Promise<UserInfo | null> {
@@ -45,13 +46,48 @@ export function createPersistentGeneration(
   sessionId: string,
   clientMessageId: string,
   content: string,
+  attachmentId?: string | null,
   signal?: AbortSignal,
 ): Promise<ChatGenerationSnapshot> {
   return apiRequest<ChatGenerationSnapshot>(`/api/chat/sessions/${sessionId}/messages`, {
     method: 'POST',
-    body: JSON.stringify({ clientMessageId, content }),
+    body: JSON.stringify({ clientMessageId, content, attachmentId: attachmentId ?? null }),
     signal,
   })
+}
+
+export async function uploadChatAttachment(
+  file: Blob,
+  kind: ChatAttachmentInput['kind'],
+  fileName: string,
+  durationMs?: number | null,
+  signal?: AbortSignal,
+): Promise<ChatAttachmentInput> {
+  const form = new FormData()
+  form.append('file', file, fileName)
+  form.append('kind', kind)
+  if (durationMs != null) form.append('durationMs', String(durationMs))
+  const result = await apiRequest<{
+    attachmentId: string
+    kind: ChatAttachmentInput['kind']
+    fileName: string
+    byteSize: number
+    contentType: string
+    durationMs: number | null
+    expiresAt: string
+  }>('/api/chat/attachments', {
+    method: 'POST',
+    body: form,
+    signal,
+  })
+  return {
+    attachmentId: result.attachmentId,
+    kind: result.kind,
+    name: result.fileName,
+    size: result.byteSize,
+    mime: result.contentType,
+    durationMs: result.durationMs,
+  }
 }
 
 export function createPersistentRegeneration(

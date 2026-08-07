@@ -98,6 +98,19 @@ test('chat server proxies guest, auth, and persistent chat requests with cookies
     })
     assert.equal(relationshipResponse.status, 200)
 
+    const uploadResponse = await fetch(`http://127.0.0.1:${port}/api/chat/attachments`, {
+      method: 'POST',
+      headers: { Cookie: 'pan_session=test-token' },
+      body: 'fake-multipart-body',
+    })
+    assert.equal(uploadResponse.status, 200)
+
+    const attachmentResponse = await fetch(
+      `http://127.0.0.1:${port}/api/chat/messages/msg-1/attachment`,
+      { headers: { Cookie: 'pan_session=test-token' } },
+    )
+    assert.equal(attachmentResponse.status, 200)
+
     assert.deepEqual(forwardedRequests, [
       {
         method: 'POST',
@@ -126,6 +139,18 @@ test('chat server proxies guest, auth, and persistent chat requests with cookies
       {
         method: 'GET',
         url: '/api/relationship',
+        cookie: 'pan_session=test-token',
+        body: '',
+      },
+      {
+        method: 'POST',
+        url: '/api/chat/attachments',
+        cookie: 'pan_session=test-token',
+        body: 'fake-multipart-body',
+      },
+      {
+        method: 'GET',
+        url: '/api/chat/messages/msg-1/attachment',
         cookie: 'pan_session=test-token',
         body: '',
       },

@@ -45,6 +45,7 @@ const showWrongAnswer = ref(false)
 const shouldAskNextBasicAfterPenalty = ref(false)
 const showFriendshipMessage = ref(false)
 const showPrizeHistory = ref(false)
+const isLocked = ref(false)
 const claimingPrizeId = ref('')
 const claimError = ref('')
 const loadError = ref('')
@@ -140,6 +141,10 @@ const handleApiError = (error: unknown, fallback: string) => {
   if (error instanceof LuckyDrawHttpError && error.status === 401) {
     redirectToLogin()
     return '请先登录'
+  }
+  if (error instanceof LuckyDrawHttpError && error.status === 403) {
+    isLocked.value = true
+    return '该活动需要注册满 7 天后解锁'
   }
   return error instanceof Error ? error.message : fallback
 }
@@ -300,6 +305,13 @@ onMounted(loadState)
       <p>答题、抽奖与奖品状态将从服务端同步。</p>
     </section>
 
+    <section v-else-if="isLocked" class="state-panel error-panel" role="alert">
+      <AlertCircle :size="28" />
+      <h1>活动尚未解锁</h1>
+      <p>{{ loadError || '该活动需要注册满 7 天后解锁，请先返回门户。' }}</p>
+      <a class="primary-action small locked-home-link" :href="portalHref">返回首页</a>
+    </section>
+
     <section v-else-if="loadError" class="state-panel error-panel" role="alert">
       <AlertCircle :size="28" />
       <h1>暂时无法进入活动</h1>
@@ -422,6 +434,10 @@ onMounted(loadState)
     transform 0.2s ease,
     background 0.2s ease,
     color 0.2s ease;
+}
+
+.locked-home-link {
+  text-decoration: none;
 }
 
 .portal-link:hover {

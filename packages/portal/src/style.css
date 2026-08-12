@@ -1133,6 +1133,32 @@ a {
   animation: auth-spin 0.9s linear infinite;
 }
 
+.guide-actions {
+  display: grid;
+  gap: 6px;
+}
+
+.guide-actions .auth-submit {
+  width: 100%;
+}
+
+.guide-later {
+  padding: 10px 16px;
+  border: none;
+  background: none;
+  color: var(--ink);
+  font-family: Helvetica, Arial, "Microsoft YaHei", sans-serif;
+  font-size: 0.9rem;
+  cursor: pointer;
+  opacity: 0.82;
+}
+
+.guide-later:hover,
+.guide-later:focus-visible {
+  opacity: 1;
+  text-decoration: underline;
+}
+
 @keyframes icon-float {
   0%,
   100% {

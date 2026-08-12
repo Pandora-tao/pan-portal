@@ -116,7 +116,7 @@ export function useChat() {
 
   async function sendMessage(rawContent: string, attachment: ChatAttachmentInput | null = null) {
     if (attachment && mode.value !== 'account') {
-      error.value = '登录后才能发送文件和语音。'
+      error.value = '登录后才能发送文件和图片。'
       return
     }
     const content = normalizeMessageContent(rawContent)

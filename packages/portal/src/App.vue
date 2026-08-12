@@ -1,9 +1,15 @@
 <script setup lang="ts">
-import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, type ComponentPublicInstance } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch, type ComponentPublicInstance } from 'vue'
 import * as Matter from 'matter-js'
 import { ArrowRight, BadgeCheck, Eye, EyeOff, LoaderCircle, LogOut, Sparkles, UserRound, X } from 'lucide-vue-next'
 import avatarUrl from './assets/pan-avatar.png'
 import { completePasswordReset, getCurrentUser, login, logout, register, submitRealName, type UserInfo } from './api/auth'
+import {
+  isFeatureUnlocked,
+  isFeatureGuidePending,
+  LUCKY_DRAW_FEATURE_KEY,
+  useFeatureEntitlements,
+} from './composables/useFeatureEntitlements'
 import DraggableDecoration from './draggable-decorations/DraggableDecoration.vue'
 import {
   createDecorationStyles,
@@ -23,18 +29,24 @@ const chatRoute = import.meta.env.VITE_CHAT_ROUTE ?? '/chat/'
 const profileRoute = import.meta.env.VITE_PROFILE_ROUTE ?? '/profile/'
 const peopleRoute = import.meta.env.VITE_PEOPLE_ROUTE ?? '/people/'
 
-const apps: PortalApp[] = [
+const { entitlements, loadEntitlements, ackGuide } = useFeatureEntitlements()
+
+const apps = computed<PortalApp[]>(() => [
   {
     id: 'people',
     name: '人物主页',
     href: peopleRoute,
   },
-  {
-    id: 'lucky-draw',
-    name: '陶攀问答局',
-    href: luckyDrawRoute,
-  },
-]
+  ...(isFeatureUnlocked(entitlements.value, LUCKY_DRAW_FEATURE_KEY)
+    ? [
+        {
+          id: 'lucky-draw',
+          name: '陶攀问答局',
+          href: luckyDrawRoute,
+        },
+      ]
+    : []),
+])
 
 const activeDecoration = ref<DecorKey | ''>('')
 const activeBubble = ref<DecorKey | ''>('')
@@ -43,6 +55,7 @@ const authMode = ref<'login' | 'register'>('login')
 const isAuthOpen = ref(false)
 const isAuthSubmitting = ref(false)
 const isSessionLoading = ref(true)
+const isGuideOpen = ref(false)
 const pendingRoute = ref<string | null>(null)
 const showPassword = ref(false)
 const authError = ref('')
@@ -145,6 +158,37 @@ function switchAuthMode(mode: 'login' | 'register') {
   authError.value = ''
 }
 
+async function refreshEntitlements() {
+  try {
+    const list = await loadEntitlements()
+    if (isFeatureGuidePending(list, LUCKY_DRAW_FEATURE_KEY)) {
+      await nextTick()
+      isGuideOpen.value = true
+    }
+  } catch {
+    // 资格读取失败时保守隐藏入口，不阻断门户其余功能。
+  }
+}
+
+function closeGuide() {
+  isGuideOpen.value = false
+}
+
+function goToLuckyDraw() {
+  window.location.assign(luckyDrawRoute)
+}
+
+watch(isGuideOpen, (open) => {
+  if (!open) {
+    return
+  }
+  nextTick(() => {
+    ackGuide(LUCKY_DRAW_FEATURE_KEY).catch(() => {
+      // 展示成功后 ACK 失败不打断用户；服务端保持 pending，下次上线可重试。
+    })
+  })
+})
+
 function validateAuthForm() {
   if (!authForm.email.trim() || !authForm.email.includes('@')) {
     return '请输入有效的邮箱地址'
@@ -183,6 +227,7 @@ async function submitAuth() {
     authForm.password = ''
     authForm.confirmPassword = ''
     isAuthOpen.value = false
+    void refreshEntitlements()
     if (new URLSearchParams(window.location.search).get('identity') === '1'
       && currentUser.value.realNameVerificationStatus !== 'APPROVED') {
       openIdentity()
@@ -221,6 +266,8 @@ async function signOut() {
     await logout()
   } finally {
     currentUser.value = null
+    entitlements.value = []
+    isGuideOpen.value = false
   }
 }
 
@@ -456,6 +503,9 @@ onMounted(() => {
   getCurrentUser()
     .then((user) => {
       currentUser.value = user
+      if (user) {
+        void refreshEntitlements()
+      }
       if (user && shouldOpenIdentity && user.realNameVerificationStatus !== 'APPROVED') {
         openIdentity()
       }
@@ -798,6 +848,29 @@ onBeforeUnmount(() => {
             <template v-else><span>确认重置</span><ArrowRight :size="19" /></template>
           </button>
         </form>
+      </section>
+    </div>
+
+    <div v-if="isGuideOpen" class="auth-overlay guide-overlay" @mousedown.self="closeGuide">
+      <section class="auth-card guide-card" role="dialog" aria-modal="true" aria-labelledby="guide-title">
+        <span class="auth-staple" aria-hidden="true"></span>
+        <button type="button" class="auth-close" aria-label="关闭" @click="closeGuide">
+          <X :size="20" />
+        </button>
+        <header class="auth-heading">
+          <span class="auth-folio">NEW</span>
+          <div>
+            <h2 id="guide-title">陶攀问答局已解锁</h2>
+            <p>你的账号已满足注册满 7 天的条件，新入口已经出现在门户中。</p>
+          </div>
+        </header>
+        <div class="auth-form guide-actions">
+          <button type="button" class="auth-submit" @click="goToLuckyDraw">
+            <span>去看看</span>
+            <ArrowRight :size="19" />
+          </button>
+          <button type="button" class="guide-later" @click="closeGuide">知道了</button>
+        </div>
       </section>
     </div>
   </main>

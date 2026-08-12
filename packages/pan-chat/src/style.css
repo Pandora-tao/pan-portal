@@ -505,6 +505,29 @@ button {
   overflow-wrap: anywhere;
 }
 
+.message-download-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--pp-accent, #007aff);
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  user-select: auto;
+  -webkit-user-select: auto;
+}
+
+.message-download-link:hover {
+  color: var(--pp-accent-dark, #0056b3);
+}
+
+.message-download-link:focus-visible {
+  border-radius: 4px;
+  outline: 2px solid currentcolor;
+  outline-offset: 3px;
+}
+
 .message-row.is-sticker .message-card {
   padding: 0;
   border: 0;

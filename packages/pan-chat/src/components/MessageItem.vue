@@ -69,6 +69,42 @@ const toolExecutionLabel = computed(() => {
   return `调用了 ${executions.length} 个工具：${names.join('、')}`
 })
 
+type MessageContentSegment =
+  | { type: 'text'; text: string }
+  | { type: 'pilot-file'; text: string; href: string }
+
+const PILOT_FILE_URL_PATTERN = /`?(\/(?:api\/chat\/pilot-files|v1\/files)\/([a-zA-Z0-9-]+))`?/g
+const messageContentSegments = computed<MessageContentSegment[]>(() => {
+  const content = props.message.content
+  if (props.message.role !== 'assistant' || !content) {
+    return [{ type: 'text', text: content }]
+  }
+
+  const segments: MessageContentSegment[] = []
+  let cursor = 0
+  for (const match of content.matchAll(PILOT_FILE_URL_PATTERN)) {
+    const matchedText = match[0]
+    const fileId = match[2]
+    const matchIndex = match.index
+    if (!matchedText || !fileId || matchIndex === undefined) continue
+
+    if (matchIndex > cursor) {
+      segments.push({ type: 'text', text: content.slice(cursor, matchIndex) })
+    }
+    segments.push({
+      type: 'pilot-file',
+      text: '下载 Word 文档',
+      href: `/api/chat/pilot-files/${fileId}`,
+    })
+    cursor = matchIndex + matchedText.length
+  }
+
+  if (cursor < content.length) {
+    segments.push({ type: 'text', text: content.slice(cursor) })
+  }
+  return segments.length ? segments : [{ type: 'text', text: content }]
+})
+
 function toggleVoice() {
   const audio = audioRef.value
   if (!audio) return
@@ -367,7 +403,19 @@ onUnmounted(() => {
           ></audio>
         </div>
         <p v-else class="message-text" :class="{ 'is-streaming': message.status === 'streaming' }">
-          {{ message.content }}
+          <template v-for="(segment, index) in messageContentSegments" :key="`${segment.type}-${index}`">
+            <a
+              v-if="segment.type === 'pilot-file'"
+              class="message-download-link"
+              :href="segment.href"
+              download
+              aria-label="下载 Word 文档"
+            >
+              <Download :size="15" aria-hidden="true" />
+              <span>{{ segment.text }}</span>
+            </a>
+            <template v-else>{{ segment.text }}</template>
+          </template>
         </p>
         <span
           v-if="toolExecutionLabel && message.role === 'assistant' && message.status === 'completed'"

@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node server/index.mjs",
-    "test": "node --test server/index.test.mjs test/chat-input-source.test.mjs",
+    "test": "node --test server/index.test.mjs test/*.test.mjs",
     "type-check": "vue-tsc --noEmit",
     "build": "vue-tsc --noEmit && vite build",
     "preview": "node server/index.mjs"

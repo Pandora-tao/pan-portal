@@ -108,6 +108,11 @@ export interface ChatMessagePage {
   hasMore: boolean
 }
 
+export interface ChatIntroduction {
+  session: ChatSession
+  message: PersistedChatMessage
+}
+
 export interface ChatMessageMetadata {
   model?: string
   tokens?: number

@@ -13,12 +13,18 @@ export function useAutoScroll(containerRef: Ref<HTMLElement | null>) {
       return
     }
 
+    // 先保持粘底状态，避免程序触发的 scroll 事件把自动跟随误判为
+    // 用户主动向上滚动。流式内容使用 auto，保证每个增量落在真实底部；
+    // 手动点击“回到底部”时仍可保留 smooth 动画。
+    shouldAutoScroll.value = true
+    if (behavior === 'auto') {
+      container.scrollTop = container.scrollHeight
+      return
+    }
     container.scrollTo({
       top: container.scrollHeight,
       behavior,
     })
-
-    shouldAutoScroll.value = true
   }
 
   function isNearBottom(): boolean {

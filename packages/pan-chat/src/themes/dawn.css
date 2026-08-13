@@ -126,6 +126,16 @@ body {
   transform: translateY(-1px);
 }
 
+.icon-action:disabled,
+.icon-action:disabled:hover {
+  cursor: not-allowed;
+  color: var(--pp-muted);
+  background: rgb(255 255 255 / 74%);
+  box-shadow: none;
+  opacity: 0.42;
+  transform: none;
+}
+
 .chat-mode-notice {
   border: 1px solid rgb(194 73 28 / 14%);
   border-left: 3px solid var(--pp-accent);
@@ -389,6 +399,23 @@ body {
 
 .composer textarea::placeholder {
   color: #a8a095;
+}
+
+.composer-pending-attachment {
+  border-color: var(--pp-soft-line);
+  border-radius: 13px;
+  color: var(--pp-ink);
+  background: var(--pp-paper-2);
+}
+
+.composer-pending-meta small,
+.composer button.composer-pending-remove {
+  color: var(--pp-muted);
+}
+
+.composer button.composer-pending-remove:hover:not(:disabled),
+.composer button.composer-pending-remove:focus-visible {
+  color: var(--pp-accent);
 }
 
 .composer button.composer-tool {

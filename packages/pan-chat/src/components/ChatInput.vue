@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, nextTick, onUnmounted, ref, useTemplateRef } from 'vue'
-import { Image as ImageIcon, Paperclip, SendHorizontal } from 'lucide-vue-next'
+import { FileText, Image as ImageIcon, Paperclip, SendHorizontal, X } from 'lucide-vue-next'
 import { uploadChatAttachment } from '../api/chatPersistence'
 import { chatConfig } from '../config/chat'
 import type { ChatAttachmentInput } from '../types/chat'
@@ -26,13 +26,17 @@ const props = defineProps<{
 }>()
 
 const emit = defineEmits<{
-  send: [content: string]
-  sendAttachment: [attachment: ChatAttachmentInput]
+  send: [content: string, attachment: ChatAttachmentInput | null]
 }>()
 
 const draft = ref('')
 const toolNotice = ref('')
 const uploading = ref(false)
+const pendingAttachment = ref<{
+  file: File
+  kind: ChatAttachmentInput['kind']
+  fileName: string
+} | null>(null)
 const textareaRef = useTemplateRef<HTMLTextAreaElement>('textareaEl')
 const fileInputRef = useTemplateRef<HTMLInputElement>('fileInputEl')
 const imageInputRef = useTemplateRef<HTMLInputElement>('imageInputEl')
@@ -45,23 +49,40 @@ const normalizedContent = computed(() => normalizeMessageContent(draft.value))
 const isTooLong = computed(() => isMessageTooLong(draft.value, maxLength.value))
 const isNearLimit = computed(() => draft.value.length >= warnLength.value && !isTooLong.value)
 const canSend = computed(
-  () => normalizedContent.value.length > 0 && !isTooLong.value && !props.sending && !props.disabled
+  () => (normalizedContent.value.length > 0 || pendingAttachment.value !== null)
+    && !isTooLong.value && !props.sending && !props.disabled
     && !uploading.value,
 )
 const toolsDisabled = computed(
   () => props.disabled || props.sending || uploading.value || !props.attachmentsEnabled,
 )
 
-function submitMessage() {
+async function submitMessage() {
   const content = normalizedContent.value
+  const attachmentDraft = pendingAttachment.value
 
-  if (!content || isTooLong.value || props.sending || props.disabled || uploading.value) {
+  if ((!content && !attachmentDraft) || isTooLong.value || props.sending || props.disabled || uploading.value) {
     return
   }
 
-  draft.value = ''
-  resetTextareaHeight()
-  emit('send', content)
+  uploading.value = attachmentDraft !== null
+  if (attachmentDraft) toolNotice.value = '正在上传…'
+
+  try {
+    const attachment = attachmentDraft
+      ? await uploadChatAttachment(attachmentDraft.file, attachmentDraft.kind, attachmentDraft.fileName)
+      : null
+
+    draft.value = ''
+    pendingAttachment.value = null
+    toolNotice.value = ''
+    resetTextareaHeight()
+    emit('send', content, attachment)
+  } catch (caught) {
+    showNotice(caught instanceof Error ? caught.message : '上传失败，请稍后再试')
+  } finally {
+    uploading.value = false
+  }
 }
 
 function handleKeydown(event: KeyboardEvent) {
@@ -70,7 +91,7 @@ function handleKeydown(event: KeyboardEvent) {
   if (event.shiftKey) return
 
   event.preventDefault()
-  submitMessage()
+  void submitMessage()
 }
 
 function handleInput() {
@@ -110,7 +131,7 @@ function pickFile(kind: 'FILE' | 'IMAGE') {
   input?.click()
 }
 
-async function handleFilePicked(event: Event) {
+function handleFilePicked(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   input.value = ''
@@ -119,10 +140,10 @@ async function handleFilePicked(event: Event) {
     showNotice('文件太大，最大支持 20MB')
     return
   }
-  await uploadAndSend(file, 'FILE', file.name)
+  stageAttachment(file, 'FILE', file.name)
 }
 
-async function handleImagePicked(event: Event) {
+function handleImagePicked(event: Event) {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   input.value = ''
@@ -138,26 +159,30 @@ async function handleImagePicked(event: Event) {
     showNotice('图片太大，最大支持 10MB')
     return
   }
-  await uploadAndSend(file, 'FILE', file.name)
+  stageAttachment(file, 'FILE', file.name)
 }
 
-async function uploadAndSend(
-  blob: Blob,
+function stageAttachment(
+  file: File,
   kind: ChatAttachmentInput['kind'],
   fileName: string,
 ) {
   if (!props.attachmentsEnabled || uploading.value) return
-  uploading.value = true
-  toolNotice.value = '正在上传…'
-  try {
-    const attachment = await uploadChatAttachment(blob, kind, fileName)
-    toolNotice.value = ''
-    emit('sendAttachment', attachment)
-  } catch (caught) {
-    showNotice(caught instanceof Error ? caught.message : '上传失败，请稍后再试')
-  } finally {
-    uploading.value = false
-  }
+  pendingAttachment.value = { file, kind, fileName }
+  toolNotice.value = ''
+  void nextTick(() => textareaRef.value?.focus())
+}
+
+function removePendingAttachment() {
+  if (uploading.value) return
+  pendingAttachment.value = null
+  void nextTick(() => textareaRef.value?.focus())
+}
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.ceil(bytes / 1024)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
 }
 
 onUnmounted(() => {
@@ -176,11 +201,28 @@ onUnmounted(() => {
         rows="1"
         :maxlength="maxLength + 100"
         :disabled="disabled"
-        placeholder="问陶攀点什么..."
+        :placeholder="pendingAttachment ? '补充说明（可选）...' : '问陶攀点什么...'"
         aria-label="输入消息"
         @keydown="handleKeydown"
         @input="handleInput"
       ></textarea>
+      <div v-if="pendingAttachment" class="composer-pending-attachment" role="status">
+        <FileText :size="18" aria-hidden="true" />
+        <span class="composer-pending-meta">
+          <strong>{{ pendingAttachment.fileName }}</strong>
+          <small>{{ formatFileSize(pendingAttachment.file.size) }} · 待发送</small>
+        </span>
+        <button
+          type="button"
+          class="composer-pending-remove"
+          :disabled="uploading"
+          aria-label="移除待发送附件"
+          title="移除附件"
+          @click="removePendingAttachment"
+        >
+          <X :size="16" aria-hidden="true" />
+        </button>
+      </div>
       <div class="composer-footer">
         <div class="composer-tools" role="group" aria-label="更多发送方式">
           <input

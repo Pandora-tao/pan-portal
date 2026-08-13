@@ -8,6 +8,7 @@ import type {
   UserInfo,
   MessageFeedbackInput,
   ChatAttachmentInput,
+  ChatIntroduction,
 } from '../types/chat'
 
 export async function getCurrentUser(): Promise<UserInfo | null> {
@@ -27,6 +28,13 @@ export function listSessions(): Promise<ChatSession[]> {
 
 export function createSession(): Promise<ChatSession> {
   return apiRequest<ChatSession>('/api/chat/sessions', {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
+}
+
+export function claimChatIntroduction(): Promise<ChatIntroduction | null> {
+  return apiRequest<ChatIntroduction | null>('/api/chat/introduction', {
     method: 'POST',
     body: JSON.stringify({}),
   })

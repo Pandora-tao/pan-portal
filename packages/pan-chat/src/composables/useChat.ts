@@ -4,6 +4,8 @@ import {
   createSession,
   createPersistentGeneration,
   createPersistentRegeneration,
+  claimChatIntroduction,
+  deleteAllSessions,
   getGeneration,
   getCurrentUser,
   listMessages,
@@ -36,6 +38,8 @@ type ChatMode = 'loading' | 'guest' | 'account'
 const GUEST_NOTICE = '当前为临时对话，刷新后不会保留。登录后只保存新的对话。'
 const EXPIRED_NOTICE = '登录已过期，已切换为临时对话；新的内容不会保存。'
 const PENDING_GENERATIONS_KEY = 'pan-chat-pending-generations-v1'
+const GUEST_INTRODUCTION_KEY = 'pan-chat-introduction-seen-v1'
+const INTRODUCTION = '你好，我是陶攀，很高兴认识你。想随便聊聊，或者想了解关于我的事情，都可以直接告诉我。'
 
 export function useChat() {
   const messages = ref<ChatMessage[]>([])
@@ -44,6 +48,7 @@ export function useChat() {
   const relationshipOverview = ref<RelationshipOverview | null>(null)
   const realNameVerificationStatus = ref<'NOT_SUBMITTED' | 'PENDING' | 'APPROVED' | 'REJECTED' | null>(null)
   const sending = ref(false)
+  const clearing = ref(false)
   const feedbackSubmittingId = ref<string | null>(null)
   const loadingEarlier = ref(false)
   const hasEarlierMessages = ref(false)
@@ -81,6 +86,7 @@ export function useChat() {
       const user = await getCurrentUser()
       if (!user) {
         enterGuestMode(GUEST_NOTICE)
+        showGuestIntroductionOnce()
         return
       }
 
@@ -89,12 +95,23 @@ export function useChat() {
       const sessions = await listSessions()
       const overview = personalizationEnabled.value ? await relationshipApi.overview() : null
       relationshipOverview.value = overview
-      const latestSession = sessions[0]
+      let latestSession = sessions[0]
 
       if (!latestSession) {
-        messages.value = []
-        currentSessionId.value = null
-        return
+        const introduction = await claimChatIntroduction()
+        if (introduction) {
+          currentSessionId.value = introduction.session.id
+          messages.value = [toChatMessage(introduction.message)]
+          nextMessageCursor = null
+          hasEarlierMessages.value = false
+          return
+        }
+        latestSession = (await listSessions())[0]
+        if (!latestSession) {
+          messages.value = []
+          currentSessionId.value = null
+          return
+        }
       }
 
       currentSessionId.value = latestSession.id
@@ -141,6 +158,33 @@ export function useChat() {
         await streamGuestMessage(assistantMessage.id, buildGuestHistory(), signal)
       }
     })
+  }
+
+  async function clearConversation() {
+    if (loading.value || sending.value || clearing.value || messages.value.length === 0) return
+    if (!window.confirm('确定清空全部对话吗？清空后无法恢复。')) return
+
+    clearing.value = true
+    error.value = null
+    try {
+      if (mode.value === 'account') {
+        await deleteAllSessions()
+        clearPendingGenerations()
+      }
+      messages.value = []
+      currentSessionId.value = null
+      nextMessageCursor = null
+      hasEarlierMessages.value = false
+    } catch (caught) {
+      if (isUnauthorizedError(caught)) {
+        enterGuestMode(EXPIRED_NOTICE)
+        error.value = '登录状态已失效，已清空本页对话。'
+        return
+      }
+      error.value = caught instanceof Error ? caught.message : '对话清空失败，请稍后再试。'
+    } finally {
+      clearing.value = false
+    }
   }
 
   async function loadEarlierMessages() {
@@ -543,6 +587,17 @@ export function useChat() {
     guestNotice.value = notice
   }
 
+  function showGuestIntroductionOnce() {
+    try {
+      if (localStorage.getItem(GUEST_INTRODUCTION_KEY) === '1') return
+      localStorage.setItem(GUEST_INTRODUCTION_KEY, '1')
+    } catch {
+      // 无法使用浏览器存储时，本次打开仍然展示介绍。
+    }
+    messages.value = [createTemporaryMessage('assistant', INTRODUCTION, 'completed')]
+    messages.value[0]!.origin = 'PROACTIVE'
+  }
+
   function createTemporaryMessage(
     role: ChatMessage['role'],
     content: string,
@@ -605,6 +660,7 @@ export function useChat() {
   return {
     messages,
     sending,
+    clearing,
     loading,
     isGuest,
     continuityLabel,
@@ -619,6 +675,7 @@ export function useChat() {
     personalizationEnabled,
     personalizationNotice,
     sendMessage,
+    clearConversation,
     loadEarlierMessages,
     regenerateMessage,
     rateMessage,
@@ -670,6 +727,14 @@ function removePendingGeneration(generationId: string) {
     ))
   } catch {
     // Reconciliation still works from the server-side pending assistant message.
+  }
+}
+
+function clearPendingGenerations() {
+  try {
+    localStorage.removeItem(PENDING_GENERATIONS_KEY)
+  } catch {
+    // Clearing the visible conversation must still succeed when storage is unavailable.
   }
 }
 

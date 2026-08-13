@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { onMounted, onUnmounted, ref } from 'vue'
 import { gsap } from 'gsap'
-import { BadgeCheck, Brain, CloudOff, Home, LoaderCircle, Square } from 'lucide-vue-next'
+import { BadgeCheck, Brain, CloudOff, Home, LoaderCircle, Square, Trash2 } from 'lucide-vue-next'
 import avatarUrl from '../../portal/src/assets/pan-avatar.png'
 import ChatInput from './components/ChatInput.vue'
 import MessageList from './components/MessageList.vue'
@@ -16,6 +16,7 @@ const portalHref = import.meta.env.VITE_PORTAL_ROUTE ?? '/'
 const {
   messages,
   sending,
+  clearing,
   loading,
   isGuest,
   continuityLabel,
@@ -30,6 +31,7 @@ const {
   personalizationEnabled,
   personalizationNotice,
   sendMessage,
+  clearConversation,
   loadEarlierMessages,
   regenerateMessage,
   rateMessage,
@@ -39,12 +41,8 @@ const {
 
 let motionMatch: ReturnType<typeof gsap.matchMedia> | null = null
 
-function handleSend(content: string) {
-  void sendMessage(content)
-}
-
-function handleSendAttachment(attachment: ChatAttachmentInput) {
-  void sendMessage('', attachment)
+function handleSend(content: string, attachment: ChatAttachmentInput | null) {
+  void sendMessage(content, attachment)
 }
 
 function handleRelationshipDeleted() {
@@ -158,6 +156,18 @@ onUnmounted(() => {
         </div>
         <div class="header-actions">
           <button
+            v-if="!loading"
+            type="button"
+            class="icon-action clear-action"
+            :disabled="sending || clearing || messages.length === 0"
+            :aria-label="clearing ? '正在清空对话' : '清空对话'"
+            :title="clearing ? '正在清空…' : '清空对话'"
+            @click="clearConversation"
+          >
+            <LoaderCircle v-if="clearing" :size="16" class="spin" />
+            <Trash2 v-else :size="16" />
+          </button>
+          <button
             v-if="sending"
             type="button"
             class="icon-action"
@@ -222,7 +232,6 @@ onUnmounted(() => {
             :disabled="loading"
             :attachments-enabled="!isGuest"
             @send="handleSend"
-            @send-attachment="handleSendAttachment"
           />
         </section>
       </div>

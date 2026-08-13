@@ -63,6 +63,20 @@ test('ChatInput image entry enforces the 10MB PanPilot limit', async () => {
   assert.equal(input.includes('文件太大，最大支持 20MB'), true)
 })
 
+test('ChatInput stages a selected attachment and sends it only on composer submit', async () => {
+  const input = await source('src/components/ChatInput.vue')
+  const app = await source('src/App.vue')
+
+  assert.equal(input.includes('pendingAttachment'), true, '选择后的附件应进入输入框待发送状态')
+  assert.equal(input.includes('待发送'), true, '输入框应显示待发送提示')
+  assert.equal(input.includes('removePendingAttachment'), true, '待发送附件应支持移除')
+  assert.equal(input.includes("emit('sendAttachment'"), false, '上传完成后不得单独触发立即发送事件')
+  assert.equal(input.includes("emit('send', content, attachment)"), true,
+    '只有提交输入框时才应把文字和附件一起发送')
+  assert.equal(app.includes('@send-attachment'), false, '父组件不应再保留立即发送附件事件')
+  assert.equal(app.includes('sendMessage(content, attachment)'), true)
+})
+
 test('MessageItem keeps historical VOICE playback rendering', async () => {
   const item = await source('src/components/MessageItem.vue')
 

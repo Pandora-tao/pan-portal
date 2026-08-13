@@ -50,7 +50,6 @@ const apps = computed<PortalApp[]>(() => [
 
 const activeDecoration = ref<DecorKey | ''>('')
 const activeBubble = ref<DecorKey | ''>('')
-const isGiftIntroOpen = ref(true)
 const authMode = ref<'login' | 'register'>('login')
 const isAuthOpen = ref(false)
 const isAuthSubmitting = ref(false)
@@ -85,7 +84,6 @@ const decorStyles = reactive(createDecorationStyles())
 
 const decorBodies = new Map<DecorKey, Matter.Body>()
 let decorationTimer: number | undefined
-let giftIntroTimer: number | undefined
 let engine: Matter.Engine | undefined
 let runner: Matter.Runner | undefined
 let resizeObserver: ResizeObserver | undefined
@@ -526,9 +524,6 @@ onMounted(() => {
   window.addEventListener('pointerup', handleWindowPointerEnd)
   window.addEventListener('pointercancel', handleWindowPointerEnd)
   window.addEventListener('keydown', handleEscape)
-  giftIntroTimer = window.setTimeout(() => {
-    isGiftIntroOpen.value = false
-  }, 2400)
 
   if (portalShell.value) {
     resizeObserver = new ResizeObserver(() => {
@@ -541,7 +536,6 @@ onMounted(() => {
 
 onBeforeUnmount(() => {
   window.clearTimeout(decorationTimer)
-  window.clearTimeout(giftIntroTimer)
   window.clearTimeout(rebuildTimer)
   window.removeEventListener('pointerup', handleWindowPointerEnd)
   window.removeEventListener('pointercancel', handleWindowPointerEnd)
@@ -557,9 +551,6 @@ onBeforeUnmount(() => {
     <section
       ref="portalShell"
       class="portal-shell"
-      :class="{
-        'is-gift-intro-open': isGiftIntroOpen,
-      }"
       aria-label="个人门户"
     >
       <h1 class="sr-only">Pan's space</h1>

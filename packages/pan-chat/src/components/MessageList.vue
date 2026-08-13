@@ -76,9 +76,26 @@ watch(
       animateLatestMessage()
       return
     }
-    void autoScrollToBottom()
+    await autoScrollToBottom('auto')
     await nextTick()
     animateLatestMessage()
+  },
+  { flush: 'post' },
+)
+
+// 流式回复会不断替换最后一条消息的 content/status，但消息数量不变。
+// 单独监听最后一条消息，才能在桌面端固定高度滚动容器中持续跟随内容增长。
+// useAutoScroll 会在用户主动离开底部后暂停，因此不会抢走历史消息阅读位置。
+watch(
+  () => {
+    const latest = props.messages.at(-1)
+    return latest
+      ? `${latest.id}\u0000${latest.status}\u0000${latest.content}`
+      : ''
+  },
+  async (current, previous) => {
+    if (!current || !previous || awaitingEarlierPage) return
+    await autoScrollToBottom('auto')
   },
   { flush: 'post' },
 )
@@ -176,8 +193,8 @@ function animateLatestMessage() {
   >
     <template v-if="messages.length === 0">
       <EmptyState
-        title="你好，我是陶攀。"
-        description="这里是我的聊天空间，想聊什么都可以直接告诉我。"
+        title="想聊点什么？"
+        description="这里是陶攀的聊天空间，有什么想说的都可以直接告诉我。"
       />
     </template>
     <template v-else>

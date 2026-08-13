@@ -752,6 +752,58 @@ body {
   color: #92959a;
 }
 
+.composer-pending-attachment {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 8px;
+  padding: 8px 9px;
+  border: 1px solid var(--chat-line);
+  color: var(--chat-ink);
+  background: #f7f8fa;
+}
+
+.composer-pending-meta {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.composer-pending-meta strong {
+  overflow: hidden;
+  font-size: 11px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.composer-pending-meta small {
+  color: var(--chat-muted);
+  font-size: 9px;
+  line-height: 1.2;
+}
+
+.composer button.composer-pending-remove {
+  display: grid;
+  width: 26px;
+  height: 26px;
+  min-height: 26px;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  color: var(--chat-muted);
+  background: transparent;
+}
+
+.composer button.composer-pending-remove:hover:not(:disabled),
+.composer button.composer-pending-remove:focus-visible {
+  color: var(--chat-blue);
+  outline: 1px solid currentColor;
+}
+
 .composer-footer {
   display: flex;
   min-height: 28px;

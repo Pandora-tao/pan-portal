@@ -4,6 +4,8 @@
     { "path": "./packages/lucky-draw/tsconfig.app.json" },
     { "path": "./packages/lucky-draw/tsconfig.node.json" },
     { "path": "./packages/portal/tsconfig.app.json" },
-    { "path": "./packages/portal/tsconfig.node.json" }
+    { "path": "./packages/portal/tsconfig.node.json" },
+    { "path": "./packages/pan-chat/tsconfig.app.json" },
+    { "path": "./packages/pan-chat/tsconfig.node.json" }
   ]
 }

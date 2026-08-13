@@ -1,5 +1,4 @@
 import { createApp } from 'vue'
-import '@fontsource/ma-shan-zheng'
 import './style.css'
 import App from './App.vue'
 

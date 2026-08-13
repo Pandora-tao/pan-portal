@@ -10,27 +10,13 @@ export interface Quiz {
   options: QuizOption[]
 }
 
-export interface TextPrize {
-  type: 'text'
-  name: string
-}
-
-export interface RedPacketPrize {
-  type: 'red-packet'
-  name: string
-  min: number
-  max: number
-}
-
-export type Prize = TextPrize | RedPacketPrize
-
-export interface ZongziItem {
+export interface PrizeTile {
   id: number
   label: string
   rotate: number
 }
 
-export const title = '陶攀的端午节赠礼'
+export const title = '陶攀问答局'
 
 export const basicQuizzes: Quiz[] = [
   {
@@ -137,39 +123,10 @@ export const advancedQuizzes: Quiz[] = [
   },
 ]
 
-export const prizePool: Prize[] = [
-  {
-    type: 'text',
-    name: '一杯奶茶',
-  },
-  {
-    type: 'red-packet',
-    name: '一个红包',
-    min: 2,
-    max: 15,
-  },
-  {
-    type: 'text',
-    name: '陶攀的一个真心话',
-  },
-  {
-    type: 'text',
-    name: '陶攀自罚三杯',
-  },
-  {
-    type: 'text',
-    name: '任意点一首歌陶攀来唱',
-  },
-  {
-    type: 'text',
-    name: '敬请期待',
-  },
-]
-
 const rotations = [-8, 5, -4, 7, 0, -7, 4, -5, 8]
 
-export const zongziItems: ZongziItem[] = Array.from({ length: 9 }, (_, index) => ({
+export const prizeTiles: PrizeTile[] = Array.from({ length: 9 }, (_, index) => ({
   id: index,
-  label: `幸运粽子 ${index + 1}`,
+  label: `奖品格 ${index + 1}`,
   rotate: rotations[index] ?? 0,
 }))

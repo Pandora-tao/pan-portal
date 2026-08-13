@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ArrowRight, CheckCircle2, LogOut, Trophy, X, XCircle } from 'lucide-vue-next'
+import { ArrowRight, CheckCircle2, LogOut, X, XCircle } from 'lucide-vue-next'
 import type { Quiz } from '../data/activity'
 
 export interface AdvancedAnswerResult {
@@ -11,10 +11,10 @@ export interface AdvancedAnswerResult {
 const props = defineProps<{
   quiz: Quiz | null
   result: AdvancedAnswerResult | null
-  score: number
   answeredCount: number
   totalCount: number
   canNext: boolean
+  submitting?: boolean
 }>()
 
 const emit = defineEmits<{
@@ -38,11 +38,7 @@ const optionClass = (label: string) => ({
       </button>
 
       <header class="challenge-header">
-        <p class="modal-kicker">进阶挑战</p>
-        <div class="score-pill">
-          <Trophy :size="15" />
-          <span>{{ score }} 分</span>
-        </div>
+        <p class="modal-kicker">加试题</p>
       </header>
 
       <template v-if="quiz">
@@ -57,7 +53,7 @@ const optionClass = (label: string) => ({
             type="button"
             role="radio"
             :aria-checked="result?.selected === option.label"
-            :disabled="Boolean(result)"
+            :disabled="Boolean(result) || submitting"
             @click="$emit('answer', option.label)"
           >
             <span class="choice-label">{{ option.label }}</span>
@@ -69,7 +65,7 @@ const optionClass = (label: string) => ({
           <CheckCircle2 v-if="result.correct" :size="18" />
           <XCircle v-else :size="18" />
           <span v-if="result.correct">
-            回答正确，+1 分<span v-if="result.gainedChance">，已获得 1 次额外抽奖机会</span>
+            回答正确<span v-if="result.gainedChance">，已获得额外抽奖机会</span>
           </span>
           <span v-else>回答错误，不扣分也没有惩罚</span>
         </div>
@@ -77,9 +73,8 @@ const optionClass = (label: string) => ({
 
       <template v-else>
         <div class="challenge-complete">
-          <Trophy :size="34" />
           <h2>进阶挑战已完成</h2>
-          <p>当前得分 {{ score }} 分，后面会派上用场。</p>
+          <p>可以回到抽奖入口了。</p>
         </div>
       </template>
 
@@ -102,10 +97,6 @@ const optionClass = (label: string) => ({
 </template>
 
 <style scoped>
-.challenge-modal {
-  position: relative;
-}
-
 .close-button {
   position: absolute;
   top: 14px;
@@ -117,57 +108,44 @@ const optionClass = (label: string) => ({
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 12px;
+  margin-bottom: 14px;
   padding-right: 34px;
 }
 
 .modal-kicker {
+  width: fit-content;
   margin: 0;
-  color: #b8402f;
-  font-size: 13px;
-  font-weight: 900;
-}
-
-.score-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  min-height: 30px;
-  border: 1px solid rgb(46 124 85 / 20%);
-  border-radius: 999px;
-  padding: 0 11px;
-  color: #19563d;
-  background: #edf6e8;
+  border: 1px solid var(--line-strong);
+  padding: 6px 10px;
+  color: var(--accent);
+  background: var(--accent-soft);
   font-size: 13px;
   font-weight: 900;
 }
 
 h2 {
-  margin: 0 0 20px;
-  color: #183027;
-  font-size: 23px;
+  margin: 0 0 22px;
+  color: var(--ink);
+  font-size: 25px;
+  font-weight: 900;
   line-height: 1.35;
 }
 
 .choice-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .choice-option {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 52px;
-  border: 1px solid rgb(46 124 85 / 20%);
-  border-radius: 8px;
-  padding: 10px 12px;
-  color: #1a3f30;
-  background:
-    radial-gradient(circle at 20% 15%, rgb(255 255 255 / 84%), transparent 32%),
-    linear-gradient(160deg, #f9fcf4, #edf6e8);
-  box-shadow: 0 10px 24px rgb(35 84 50 / 8%);
+  min-height: 58px;
+  border: 1px solid var(--line-strong);
+  padding: 11px 13px;
+  color: var(--ink);
+  background: var(--surface);
   cursor: pointer;
   text-align: left;
   transition:
@@ -178,8 +156,9 @@ h2 {
 }
 
 .choice-option:not(:disabled):hover {
-  border-color: #2e7c55;
-  box-shadow: 0 14px 30px rgb(35 84 50 / 14%);
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
   transform: translateY(-2px);
 }
 
@@ -188,13 +167,14 @@ h2 {
 }
 
 .choice-option.correct {
-  border-color: #2e7c55;
-  background: linear-gradient(160deg, #f7f2d8, #dceecf);
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .choice-option.wrong {
-  border-color: #c15b43;
-  background: linear-gradient(160deg, #fff5ea, #f8dfd2);
+  color: var(--muted);
+  background: var(--soft);
 }
 
 .choice-label {
@@ -203,20 +183,21 @@ h2 {
   place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: 999px;
-  color: #fffdf4;
-  background: #2e7c55;
+  border: 1px solid currentColor;
+  color: currentColor;
+  background: transparent;
   font-weight: 900;
 }
 
 .choice-option.wrong .choice-label {
-  background: #b8402f;
+  color: var(--muted);
 }
 
 .choice-text {
   min-width: 0;
   font-size: 16px;
   font-weight: 800;
+  line-height: 1.35;
 }
 
 .answer-result {
@@ -224,28 +205,27 @@ h2 {
   align-items: center;
   gap: 8px;
   margin-top: 14px;
-  border: 1px solid rgb(184 64 47 / 18%);
-  border-radius: 8px;
-  padding: 11px 12px;
-  color: #934330;
-  background: #fff3ea;
+  border: 1px solid var(--line-strong);
+  padding: 12px 13px;
+  color: var(--ink);
+  background: var(--surface);
   font-size: 14px;
   font-weight: 800;
   line-height: 1.45;
 }
 
 .answer-result.correct {
-  border-color: rgb(46 124 85 / 18%);
-  color: #19563d;
-  background: #eff8e8;
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
 }
 
 .challenge-complete {
   display: grid;
   justify-items: center;
   gap: 10px;
-  padding: 20px 0 8px;
-  color: #19563d;
+  padding: 22px 0 8px;
+  color: var(--ink);
   text-align: center;
 }
 
@@ -255,7 +235,7 @@ h2 {
 }
 
 .challenge-complete p {
-  color: #5b7165;
+  color: var(--muted);
   line-height: 1.7;
 }
 
@@ -265,7 +245,9 @@ h2 {
   justify-content: space-between;
   gap: 12px;
   margin-top: 22px;
-  color: #6a7b70;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  color: var(--muted);
   font-size: 13px;
   font-weight: 800;
 }

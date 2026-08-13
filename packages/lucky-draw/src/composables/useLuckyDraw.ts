@@ -1,113 +1,50 @@
-import { computed } from 'vue'
-import { useStorage } from '@vueuse/core'
-import { basicQuizzes, prizePool, type RedPacketPrize } from '../data/activity'
-
-const STORAGE_KEY = 'taopan-dragon-boat-lucky-draw-v3'
-
-interface DrawRecord {
-  prize: string
-  time: string
-}
-
-interface DrawState {
-  chances: number
-  draws: DrawRecord[]
-  bonusClaimed: boolean
-  basicFailedQuestionIds: string[]
-  friendshipSunk: boolean
-  advancedAnsweredQuestionIds: string[]
-  advancedScore: number
-}
-
-const defaultDrawState: DrawState = {
-  chances: 1,
-  draws: [],
-  bonusClaimed: false,
-  basicFailedQuestionIds: [],
-  friendshipSunk: false,
-  advancedAnsweredQuestionIds: [],
-  advancedScore: 0,
-}
-
-const createRedPacketPrize = (prize: RedPacketPrize) => {
-  const amount = Math.floor(Math.random() * (prize.max - prize.min + 1)) + prize.min
-  return `${prize.name} ${amount} 元`
-}
-
-const pickRandomPrize = () => {
-  const prize = prizePool[Math.floor(Math.random() * prizePool.length)]
-
-  if (!prize) {
-    return ''
-  }
-
-  if (prize.type === 'red-packet') {
-    return createRedPacketPrize(prize)
-  }
-
-  return prize.name
-}
+import { computed, ref } from 'vue'
+import { luckyDrawApi } from '../api/luckyDraw'
+import { basicQuizzes } from '../data/activity'
+import { createDefaultDrawState, type DrawRecord } from './drawState'
 
 export const useLuckyDraw = () => {
-  const state = useStorage<DrawState>(STORAGE_KEY, defaultDrawState, localStorage, {
-    mergeDefaults: true,
-  })
+  const state = ref(createDefaultDrawState())
+  const isLoading = ref(true)
 
   const canDraw = computed(() => state.value.chances > 0 && !state.value.friendshipSunk)
   const totalDraws = computed(() => state.value.draws.length)
   const allBasicQuestionsFailed = computed(() => state.value.basicFailedQuestionIds.length >= basicQuizzes.length)
 
-  const drawPrize = () => {
+  const initialize = async () => {
+    isLoading.value = true
+    try {
+      state.value = await luckyDrawApi.state()
+    } finally {
+      isLoading.value = false
+    }
+  }
+
+  const drawPrize = async (): Promise<DrawRecord | null> => {
     if (!canDraw.value) {
-      return ''
+      return null
     }
-
-    const prize = pickRandomPrize()
-    state.value.chances -= 1
-    state.value.draws.push({
-      prize,
-      time: new Date().toISOString(),
-    })
-
-    return prize
+    const result = await luckyDrawApi.draw()
+    state.value = result.state
+    return result.draw
   }
 
-  const claimBonusChance = () => {
-    if (state.value.bonusClaimed || state.value.friendshipSunk) {
-      return false
-    }
-
-    state.value.chances += 1
-    state.value.bonusClaimed = true
-    return true
+  const recordBasicAnswer = async (questionId: string, selectedAnswer: string) => {
+    const result = await luckyDrawApi.answer(questionId, 'BASIC', selectedAnswer)
+    state.value = result.state
+    return result
   }
 
-  const recordBasicFailure = (questionId: string) => {
-    if (!state.value.basicFailedQuestionIds.includes(questionId)) {
-      state.value.basicFailedQuestionIds.push(questionId)
-    }
-
-    if (state.value.basicFailedQuestionIds.length >= basicQuizzes.length) {
-      state.value.chances = 0
-      state.value.bonusClaimed = true
-      state.value.friendshipSunk = true
-    }
-
-    return state.value.friendshipSunk
+  const recordAdvancedAnswer = async (questionId: string, selectedAnswer: string) => {
+    const result = await luckyDrawApi.answer(questionId, 'ADVANCED', selectedAnswer)
+    state.value = result.state
+    return result
   }
 
-  const recordAdvancedAnswer = (questionId: string, correct: boolean) => {
-    if (state.value.advancedAnsweredQuestionIds.includes(questionId)) {
-      return false
-    }
-
-    state.value.advancedAnsweredQuestionIds.push(questionId)
-
-    if (correct) {
-      state.value.advancedScore += 1
-    }
-
-    return true
+  const claimPrize = async (drawId: string) => {
+    const claimed = await luckyDrawApi.claim(drawId)
+    state.value.draws = state.value.draws.map((draw) => (draw.id === claimed.id ? claimed : draw))
+    return claimed
   }
 
   return {
@@ -115,9 +52,11 @@ export const useLuckyDraw = () => {
     canDraw,
     totalDraws,
     allBasicQuestionsFailed,
+    isLoading,
+    initialize,
     drawPrize,
-    claimBonusChance,
-    recordBasicFailure,
+    recordBasicAnswer,
     recordAdvancedAnswer,
+    claimPrize,
   }
 }

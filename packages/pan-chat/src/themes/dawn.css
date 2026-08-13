@@ -1,0 +1,506 @@
+/* Minimal — warm white + terracotta accent, gentle warmth */
+:root {
+  --pp-surface: #faf6f0;
+  --pp-paper: #ffffff;
+  --pp-paper-2: #faf6f0;
+  --pp-ink: #211d18;
+  --pp-muted: #857d72;
+  --pp-line: #ece5da;
+  --pp-soft-line: #f3eee5;
+  --pp-accent: #c2491c;
+  --pp-accent-dark: #a53d16;
+  --pp-accent-soft: #fbece4;
+  --pp-danger: #c2452f;
+  --pp-danger-soft: #fdf1ee;
+  --pp-radius: 20px;
+  --pp-radius-sm: 13px;
+  --pp-shadow: 0 14px 34px rgb(33 29 24 / 8%);
+  --pp-shadow-accent: 0 12px 28px rgb(194 73 28 / 18%);
+  --pp-overlay: rgb(33 29 24 / 34%);
+  --pp-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --pp-font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", system-ui, sans-serif;
+  --pp-ambient-1: rgb(194 73 28 / 13%);
+  --pp-ambient-2: rgb(224 170 120 / 18%);
+  --pp-ambient-opacity: 0.9;
+}
+
+html,
+body {
+  color: var(--pp-ink);
+  background: var(--pp-surface);
+}
+
+.chat-page {
+  background:
+    radial-gradient(circle at 80% 10%, rgb(194 73 28 / 4%), transparent 40%),
+    linear-gradient(160deg, var(--pp-surface), #f4ede2 86%);
+}
+
+.chat-page::before,
+.chat-page::after {
+  background: none;
+  opacity: 1;
+  mask-image: none;
+}
+
+.page-folio {
+  color: var(--pp-muted);
+}
+
+.page-folio__number {
+  color: var(--pp-accent);
+  opacity: 0.12;
+}
+
+.chat-shell {
+  border: 1px solid var(--pp-line);
+  border-radius: 28px;
+  background: rgb(255 255 255 / 90%);
+  box-shadow:
+    0 26px 70px rgb(33 29 24 / 10%),
+    inset 0 1px 0 rgb(255 255 255 / 92%);
+  backdrop-filter: blur(22px);
+}
+
+.chat-shell::before {
+  background: none;
+}
+
+.chat-header {
+  border-bottom: 1px solid var(--pp-soft-line);
+  background: rgb(255 255 255 / 64%);
+  backdrop-filter: blur(18px);
+}
+
+.app-mark {
+  border: 1px solid var(--pp-line);
+  border-radius: 17px;
+  background: var(--pp-paper);
+  box-shadow:
+    0 10px 24px rgb(33 29 24 / 7%),
+    inset 0 1px 0 rgb(255 255 255 / 90%);
+}
+
+.app-mark img {
+  filter: none;
+}
+
+.chat-title span.chat-kicker {
+  color: var(--pp-accent);
+  font-weight: 750;
+  letter-spacing: 0.18em;
+}
+
+.chat-title p {
+  color: var(--pp-ink);
+  font-size: 25px;
+  font-weight: 780;
+  letter-spacing: -0.02em;
+}
+
+.chat-title span.chat-status {
+  color: var(--pp-muted);
+}
+
+.chat-status i {
+  background: var(--pp-accent);
+  box-shadow: 0 0 0 3px var(--pp-accent-soft);
+}
+
+.icon-action,
+.portal-link {
+  border: 1px solid var(--pp-line);
+  border-radius: 14px;
+  color: var(--pp-ink);
+  background: rgb(255 255 255 / 74%);
+  box-shadow:
+    0 6px 16px rgb(33 29 24 / 5%),
+    inset 0 1px 0 rgb(255 255 255 / 88%);
+}
+
+.icon-action:hover,
+.portal-link:hover {
+  color: #ffffff;
+  background: var(--pp-accent);
+  box-shadow: 0 10px 22px var(--pp-shadow-accent);
+  transform: translateY(-1px);
+}
+
+.icon-action:disabled,
+.icon-action:disabled:hover {
+  cursor: not-allowed;
+  color: var(--pp-muted);
+  background: rgb(255 255 255 / 74%);
+  box-shadow: none;
+  opacity: 0.42;
+  transform: none;
+}
+
+.chat-mode-notice {
+  border: 1px solid rgb(194 73 28 / 14%);
+  border-left: 3px solid var(--pp-accent);
+  border-radius: 15px;
+  color: var(--pp-muted);
+  background: rgb(255 255 255 / 76%);
+  backdrop-filter: blur(14px);
+}
+
+.chat-mode-notice svg,
+.chat-mode-notice a {
+  color: var(--pp-accent);
+}
+
+.chat-loading {
+  color: var(--pp-muted);
+}
+
+.message-list::-webkit-scrollbar-thumb {
+  background: rgb(33 29 24 / 14%);
+}
+
+.message-date-separator,
+.earlier-message-status {
+  color: var(--pp-muted);
+  font-weight: 700;
+}
+
+.message-date-separator::before,
+.message-date-separator::after {
+  background: var(--pp-soft-line);
+}
+
+.message-author {
+  color: var(--pp-muted);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.message-row.is-assistant .message-author {
+  color: var(--pp-accent);
+}
+
+.message-card {
+  color: var(--pp-ink);
+  border: 1px solid var(--pp-soft-line);
+  border-radius: var(--pp-radius);
+  background: var(--pp-paper);
+  box-shadow:
+    0 10px 26px rgb(33 29 24 / 6%),
+    inset 0 1px 0 rgb(255 255 255 / 92%);
+  backdrop-filter: none;
+}
+
+.message-row.is-assistant .message-card {
+  border-left-color: var(--pp-line);
+}
+
+.message-row.is-user .message-card {
+  border-color: transparent;
+  color: #ffffff;
+  background: var(--pp-accent);
+  box-shadow: 0 14px 30px var(--pp-shadow-accent);
+}
+
+.message-row.is-user .message-card:hover {
+  transform: none;
+}
+
+.message-row.is-failed .message-card {
+  border-color: rgb(194 69 47 / 22%);
+  background: var(--pp-danger-soft);
+}
+
+.message-text {
+  font-size: 15px;
+  line-height: 1.74;
+}
+
+.message-text.is-streaming::after {
+  background: var(--pp-accent);
+}
+
+.message-row.is-user .message-text.is-streaming::after {
+  background: #ffffff;
+}
+
+.message-context-menu,
+.feedback-panel {
+  border: 1px solid var(--pp-line);
+  border-radius: 15px;
+  background: rgb(255 255 255 / 96%);
+  box-shadow: 0 18px 44px rgb(33 29 24 / 13%);
+  backdrop-filter: blur(18px);
+}
+
+.message-context-menu button {
+  border-radius: 11px;
+}
+
+.message-context-menu button:hover:not(:disabled),
+.message-context-menu button:focus-visible {
+  color: var(--pp-accent);
+  background: var(--pp-accent-soft);
+}
+
+.back-to-bottom {
+  border: 1px solid var(--pp-line);
+  border-radius: 999px;
+  color: var(--pp-ink);
+  background: rgb(255 255 255 / 92%);
+  box-shadow: 0 10px 24px rgb(33 29 24 / 10%);
+  backdrop-filter: blur(12px);
+}
+
+.message-action {
+  color: var(--pp-muted);
+}
+
+.message-action:hover:not(:disabled) {
+  color: var(--pp-accent);
+  background: var(--pp-accent-soft);
+}
+
+.thinking-indicator {
+  color: var(--pp-muted);
+}
+
+.thinking-dot {
+  background: var(--pp-accent);
+  box-shadow: none;
+}
+
+.feedback-heading strong {
+  color: var(--pp-ink);
+}
+
+.feedback-heading span,
+.feedback-rating-options button,
+.feedback-options button {
+  color: var(--pp-muted);
+}
+
+.feedback-rating-options button,
+.feedback-options button,
+.feedback-panel textarea,
+.feedback-submit,
+.feedback-heading > button {
+  border-radius: 12px;
+}
+
+.feedback-rating-options button.is-selected,
+.feedback-options button.is-selected {
+  border-color: rgb(194 73 28 / 24%);
+  color: var(--pp-accent);
+  background: var(--pp-accent-soft);
+}
+
+.feedback-panel textarea {
+  background: var(--pp-paper-2);
+  color: var(--pp-ink);
+}
+
+.feedback-submit {
+  background: var(--pp-accent);
+}
+
+.empty-state {
+  color: var(--pp-muted);
+}
+
+.welcome-wordmark {
+  color: var(--pp-ink);
+  font-size: clamp(64px, 9vw, 120px);
+  font-weight: 850;
+  line-height: 0.8;
+  letter-spacing: -0.06em;
+}
+
+.welcome-number {
+  color: var(--pp-accent);
+  opacity: 0.14;
+}
+
+.welcome-avatar {
+  border: 2px solid rgb(255 255 255 / 92%);
+  border-radius: 50%;
+  background: var(--pp-paper);
+  box-shadow:
+    0 14px 30px rgb(33 29 24 / 13%),
+    0 0 0 1px var(--pp-soft-line);
+}
+
+.welcome-rule {
+  width: 48px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--pp-accent);
+}
+
+.welcome-eyebrow {
+  color: var(--pp-muted);
+  font-weight: 700;
+  letter-spacing: 0.22em;
+}
+
+.empty-title {
+  color: var(--pp-ink);
+  font-size: 30px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+
+.empty-desc {
+  color: var(--pp-muted);
+}
+
+.empty-action {
+  border-radius: 999px;
+  color: #ffffff;
+  background: var(--pp-accent);
+  box-shadow: 0 12px 26px var(--pp-shadow-accent);
+}
+
+.chat-error {
+  border: 1px solid rgb(194 69 47 / 20%);
+  border-radius: 15px;
+  color: #a33a27;
+  background: var(--pp-danger-soft);
+  box-shadow: none;
+}
+
+.composer {
+  border: 1px solid var(--pp-line);
+  border-radius: 24px;
+  background: rgb(255 255 255 / 84%);
+  box-shadow:
+    0 16px 38px rgb(33 29 24 / 9%),
+    inset 0 1px 0 rgb(255 255 255 / 92%);
+  backdrop-filter: blur(22px);
+}
+
+.composer:focus-within {
+  border-color: rgb(194 73 28 / 34%);
+  background: rgb(255 255 255 / 95%);
+  box-shadow:
+    0 18px 42px rgb(33 29 24 / 10%),
+    0 0 0 3px rgb(194 73 28 / 9%);
+  transform: none;
+}
+
+.composer-label {
+  color: var(--pp-muted);
+  font-weight: 700;
+  letter-spacing: 0.18em;
+}
+
+.composer textarea {
+  color: var(--pp-ink);
+}
+
+.composer textarea::placeholder {
+  color: #a8a095;
+}
+
+.composer-pending-attachment {
+  border-color: var(--pp-soft-line);
+  border-radius: 13px;
+  color: var(--pp-ink);
+  background: var(--pp-paper-2);
+}
+
+.composer-pending-meta small,
+.composer button.composer-pending-remove {
+  color: var(--pp-muted);
+}
+
+.composer button.composer-pending-remove:hover:not(:disabled),
+.composer button.composer-pending-remove:focus-visible {
+  color: var(--pp-accent);
+}
+
+.composer button.composer-tool {
+  border: 1px solid var(--pp-soft-line);
+  border-radius: 11px;
+  color: var(--pp-muted);
+  background: var(--pp-paper-2);
+}
+
+.composer button.composer-tool:hover:not(:disabled),
+.composer button.composer-tool:focus-visible {
+  border-color: rgb(194 73 28 / 26%);
+  color: var(--pp-accent);
+  background: var(--pp-accent-soft);
+}
+
+.composer-tool-notice {
+  color: var(--pp-accent);
+}
+
+.composer button.composer-send {
+  border-left: 1px solid var(--pp-line);
+  color: #a8a095;
+  background: var(--pp-paper-2);
+}
+
+.composer button.composer-send.is-ready {
+  color: #ffffff;
+  background: var(--pp-accent);
+  box-shadow: none;
+}
+
+.composer button.composer-send.is-ready:not(:disabled):hover {
+  background: var(--pp-accent-dark);
+  box-shadow: 0 10px 24px var(--pp-shadow-accent);
+}
+
+.icon-action:focus-visible,
+.portal-link:focus-visible,
+.composer button:focus-visible,
+.back-to-bottom:focus-visible,
+.message-action:focus-visible,
+.empty-action:focus-visible {
+  outline-color: var(--pp-accent);
+}
+
+@media (max-width: 760px) {
+  .chat-shell {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .app-mark {
+    width: 52px;
+    height: 52px;
+    border-radius: 16px;
+  }
+
+  .chat-title p {
+    font-size: 22px;
+  }
+
+  .icon-action,
+  .portal-link {
+    border-radius: 13px;
+  }
+
+  .message-card {
+    border-radius: 18px;
+  }
+
+  .welcome-wordmark {
+    font-size: clamp(62px, 22vw, 92px);
+  }
+
+  .empty-title {
+    font-size: 28px;
+  }
+
+  .composer {
+    border-radius: 22px;
+  }
+
+  .composer button.composer-tool {
+    border-radius: 10px;
+  }
+}

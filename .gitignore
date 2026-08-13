@@ -5,6 +5,9 @@ dist-ssr
 *.log
 .codex-logs
 .codex-screenshots
+.playwright-cli
+.superpowers
+output/playwright
 
 .vscode/*
 !.vscode/extensions.json

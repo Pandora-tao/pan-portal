@@ -19,6 +19,7 @@ const emit = defineEmits<{
 
 const answer = ref('')
 const error = ref('')
+const isSubmitting = ref(false)
 
 const isChoiceQuiz = computed(() => Boolean(props.quiz.options.length))
 
@@ -38,9 +39,12 @@ const selectOption = (value: string) => {
   answer.value = value
 
   if (isChoiceQuiz.value) {
+    if (isSubmitting.value) return
+    isSubmitting.value = true
     emit('submit', value, (result) => {
       if (result.ok === false) {
         error.value = result.message ?? '答案不对，再试一次。'
+        isSubmitting.value = false
       }
     })
   }
@@ -53,7 +57,7 @@ const selectOption = (value: string) => {
       <button class="icon-button close-button" type="button" aria-label="关闭" @click="$emit('close')">
         <X :size="18" />
       </button>
-      <p class="modal-kicker">入场问题</p>
+      <p class="modal-kicker">基础题</p>
       <h2>{{ quiz.question }}</h2>
 
       <div class="choice-grid" role="radiogroup" :aria-label="quiz.question">
@@ -65,6 +69,7 @@ const selectOption = (value: string) => {
           type="button"
           role="radio"
           :aria-checked="answer === option.label"
+          :disabled="isSubmitting"
           @click="selectOption(option.label)"
         >
           <span class="choice-label">{{ option.label }}</span>
@@ -78,10 +83,6 @@ const selectOption = (value: string) => {
 </template>
 
 <style scoped>
-.modal {
-  position: relative;
-}
-
 .close-button {
   position: absolute;
   top: 14px;
@@ -89,39 +90,41 @@ const selectOption = (value: string) => {
 }
 
 .modal-kicker {
-  margin: 0 0 10px;
-  color: #b8402f;
+  width: fit-content;
+  margin: 0 0 12px;
+  border: 1px solid var(--line-strong);
+  padding: 6px 10px;
+  color: var(--accent);
+  background: var(--accent-soft);
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 900;
 }
 
 .modal h2 {
-  margin: 0 0 22px;
+  margin: 0 0 24px;
   padding-right: 26px;
-  color: #183027;
-  font-size: 24px;
+  color: var(--ink);
+  font-size: 26px;
+  font-weight: 900;
   line-height: 1.35;
 }
 
 .choice-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 10px;
+  gap: 12px;
 }
 
 .choice-option {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 52px;
-  border: 1px solid rgb(46 124 85 / 20%);
-  border-radius: 8px;
-  padding: 10px 12px;
-  color: #1a3f30;
-  background:
-    radial-gradient(circle at 20% 15%, rgb(255 255 255 / 84%), transparent 32%),
-    linear-gradient(160deg, #f9fcf4, #edf6e8);
-  box-shadow: 0 10px 24px rgb(35 84 50 / 8%);
+  min-height: 58px;
+  border: 1px solid var(--line-strong);
+  padding: 11px 13px;
+  color: var(--ink);
+  background: var(--surface);
   cursor: pointer;
   text-align: left;
   transition:
@@ -133,11 +136,9 @@ const selectOption = (value: string) => {
 
 .choice-option:hover,
 .choice-option.selected {
-  border-color: #2e7c55;
-  background:
-    radial-gradient(circle at 20% 15%, rgb(255 255 255 / 90%), transparent 32%),
-    linear-gradient(160deg, #f7f2d8, #dceecf);
-  box-shadow: 0 14px 30px rgb(35 84 50 / 14%);
+  border-color: var(--accent);
+  color: var(--accent);
+  background: var(--accent-soft);
   transform: translateY(-2px);
 }
 
@@ -147,9 +148,9 @@ const selectOption = (value: string) => {
   place-items: center;
   width: 28px;
   height: 28px;
-  border-radius: 999px;
-  color: #fffdf4;
-  background: #2e7c55;
+  border: 1px solid currentColor;
+  color: currentColor;
+  background: transparent;
   font-weight: 900;
 }
 
@@ -157,11 +158,12 @@ const selectOption = (value: string) => {
   min-width: 0;
   font-size: 16px;
   font-weight: 800;
+  line-height: 1.35;
 }
 
 .form-error {
   margin: 12px 0 0;
-  color: #b8402f;
+  color: var(--accent);
   font-size: 14px;
 }
 

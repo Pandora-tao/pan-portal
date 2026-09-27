@@ -27,16 +27,10 @@ interface PortalApp {
 const luckyDrawRoute = import.meta.env.VITE_LUCKY_DRAW_ROUTE ?? '/lucky-draw/'
 const chatRoute = import.meta.env.VITE_CHAT_ROUTE ?? '/chat/'
 const profileRoute = import.meta.env.VITE_PROFILE_ROUTE ?? '/profile/'
-const peopleRoute = import.meta.env.VITE_PEOPLE_ROUTE ?? '/people/'
 
 const { entitlements, loadEntitlements, ackGuide } = useFeatureEntitlements()
 
 const apps = computed<PortalApp[]>(() => [
-  {
-    id: 'people',
-    name: '人物主页',
-    href: peopleRoute,
-  },
   ...(isFeatureUnlocked(entitlements.value, LUCKY_DRAW_FEATURE_KEY)
     ? [
         {
